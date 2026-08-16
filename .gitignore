@@ -1,0 +1,18 @@
+# Entorno virtual (sustituye venv si tu carpeta tiene otro nombre, ej: .venv o env)
+venv/
+.venv/
+env/
+
+# Archivos de caché de Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Archivos de entorno y claves
+.env
+
+# Archivos del Frontend (si están en la misma carpeta)
+node_modules/
+dist/
+build/
+.DS_Store
