@@ -60,10 +60,12 @@ async def seed():
         inst_map = {inst.nombre: inst.id_institucion for inst in instituciones}
 
         #Estados beneficiaria
-        estados = ["Activa", "Egresada", "Trasladada"]
+        estados = ["Activa", "Egresada", "Trasladada", "Anulada"]
         for desc in estados:
             session.add(EstadoBeneficiaria(descripcion=desc))
         await session.flush()
+        
+        # Obtenemos el ID de 'Activa' para asignarlo por defecto a las niñas
         estado_activa = (await session.execute(text("SELECT id_estado_beneficiaria FROM estado_beneficiaria WHERE descripcion = 'Activa'"))).scalar()
 
         #Parentescos (en masculino/estándar)
