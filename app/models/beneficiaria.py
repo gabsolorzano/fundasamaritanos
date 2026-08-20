@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Date, ForeignKey, Boolean
+from sqlalchemy import Column, Integer, String, Date, ForeignKey, Boolean, Text
 from sqlalchemy.orm import relationship
 from app.core.db import Base
 
@@ -18,6 +18,7 @@ class Beneficiaria(Base):
     grado_actual = Column(String(50), nullable=True)
     fecha_egreso = Column(Date, nullable=True)
     activo = Column(Boolean, default=True)  # Soft delete
+    observaciones = Column(Text, nullable=True)
 
     # Relaciones
     expediente = relationship("Expediente", back_populates="beneficiarias")

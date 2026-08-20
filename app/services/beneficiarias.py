@@ -148,9 +148,11 @@ class BeneficiariaService:
             "grado_actual": beneficiaria.grado_actual,
             "fecha_egreso": beneficiaria.fecha_egreso,
             "estado": beneficiaria.estado_beneficiaria.descripcion, 
+            "observaciones": beneficiaria.observaciones,
             "expediente": {
                 "id_expediente": beneficiaria.expediente.id_expediente,
                 "codigo_expediente": beneficiaria.expediente.codigo_expediente,
+                "id_direccion": beneficiaria.expediente.id_direccion,
                 "fecha_apertura": beneficiaria.expediente.fecha_apertura,
                 "observaciones": beneficiaria.expediente.observaciones,
                 "direccion": beneficiaria.expediente.direccion.__dict__

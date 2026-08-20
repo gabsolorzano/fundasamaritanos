@@ -16,6 +16,7 @@ class BeneficiariaBase(BaseModel):
     fecha_nacimiento: date
     grado_actual: Optional[str] = None
     fecha_egreso: Optional[date] = None
+    observaciones: Optional[str] = None
 
 class BeneficiariaCreate(BeneficiariaBase):
     #Campos necesarios para CREAR una beneficiaria.
@@ -35,6 +36,7 @@ class BeneficiariaUpdate(BaseModel):
     id_institucion: Optional[int] = None
     id_estado_beneficiaria: Optional[int] = None
     id_direccion_lugar_nacimiento: Optional[int] = None
+    observaciones: Optional[str] = None
 
 class BeneficiariaResponse(BeneficiariaBase):
     #Respuesta completa (con relaciones básicas)
@@ -55,6 +57,7 @@ class BeneficiariaDetailResponse(BaseModel):
     grado_actual: str | None
     fecha_egreso: date | None
     estado: str  # Descripción del estado
+    observaciones: Optional[str] = None
     expediente: ExpedienteResponse
     institucion: InstitucionResponse
     lugar_nacimiento: DireccionResponse
