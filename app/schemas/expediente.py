@@ -1,29 +1,36 @@
 # app/schemas/expediente.py
 from pydantic import BaseModel
 from datetime import date
-from typing import Optional
+from typing import Optional, List
+from app.schemas.direccion import DireccionResponse
 
-# Esquema base: Los campos que coinciden con tu modelo
 class ExpedienteBase(BaseModel):
     codigo_expediente: str
     id_direccion: int  
     fecha_apertura: date
     observaciones: Optional[str] = None
+    activo: Optional[bool] = True
 
-# Esquema para CREAR (hereda de Base)
 class ExpedienteCreate(ExpedienteBase):
     pass
 
-# Esquema para ACTUALIZAR (todos los campos opcionales)
 class ExpedienteUpdate(BaseModel):
     codigo_expediente: Optional[str] = None
     id_direccion: Optional[int] = None
     fecha_apertura: Optional[date] = None
     observaciones: Optional[str] = None
+    activo: Optional[bool] = None
 
-# Esquema para RESPUESTA 
 class ExpedienteResponse(ExpedienteBase):
     id_expediente: int
 
     class Config:
         from_attributes = True
+
+class ExpedienteDetailResponse(ExpedienteResponse):
+    direccion: Optional[DireccionResponse] = None
+    beneficiarias: List["BeneficiariaResponse"] = []  # <--- Entre comillas
+
+# Importamos aquí abajo para cerrar el ciclo de manera ordenada
+from app.schemas.beneficiaria import BeneficiariaResponse
+ExpedienteDetailResponse.model_rebuild()

@@ -3,7 +3,7 @@ from pydantic import BaseModel, computed_field
 from datetime import date
 from typing import Optional, List
 from .direccion import DireccionResponse
-from .expediente import ExpedienteResponse
+#from .expediente import ExpedienteResponse
 from .institucion import InstitucionResponse
 from .representante import RepresentanteResponse
 
@@ -58,7 +58,7 @@ class BeneficiariaDetailResponse(BaseModel):
     fecha_egreso: date | None
     estado: str  # Descripción del estado
     observaciones: Optional[str] = None
-    expediente: ExpedienteResponse
+    expediente: "ExpedienteResponse"
     institucion: InstitucionResponse
     lugar_nacimiento: DireccionResponse
     representantes: List[RepresentanteResponse]
@@ -79,4 +79,7 @@ class BeneficiariaSimpleResponse(BaseModel):
     apellidos: str
     codigo_expediente: str
     estado: str
-        
+
+# Importamos aquí abajo de forma segura para que Python no se confunda al arrancar
+from app.schemas.expediente import ExpedienteResponse
+BeneficiariaDetailResponse.model_rebuild()     
