@@ -8,3 +8,6 @@ class DireccionResponse(BaseModel):
     ciudad: str
     municipio: str
     estado: str
+    
+    class Config:
+        from_attributes = True

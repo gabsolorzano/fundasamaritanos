@@ -1,3 +1,4 @@
+# app/models/beneficiaria.py
 from sqlalchemy import Column, Integer, String, Date, ForeignKey, Boolean, Text
 from sqlalchemy.orm import relationship
 from app.core.db import Base
@@ -28,3 +29,13 @@ class Beneficiaria(Base):
 
     # Relación muchos-a-muchos con Representante a través de la tabla intermedia
     representantes = relationship("BeneficiariaRepresentante", back_populates="beneficiaria")
+    
+    @property
+    def estado(self) -> str:
+        return self.estado_beneficiaria.descripcion if self.estado_beneficiaria else ""
+
+    @property
+    def hermanas(self):
+        if not self.expediente or not self.expediente.beneficiarias:
+            return []
+        return [b for b in self.expediente.beneficiarias if b.id_beneficiaria != self.id_beneficiaria]

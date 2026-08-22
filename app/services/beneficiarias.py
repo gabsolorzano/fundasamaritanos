@@ -12,8 +12,7 @@ from app.models.estado_beneficiaria import EstadoBeneficiaria
 from app.models.direccion import Direccion
 from app.models.representante import Representante
 from app.models.beneficiaria_representante import BeneficiariaRepresentante
-from app.schemas.beneficiaria import BeneficiariaCreate
-from app.schemas.beneficiaria import BeneficiariaCreate, BeneficiariaUpdate
+from app.schemas.beneficiaria import BeneficiariaCreate, BeneficiariaUpdate, BeneficiariaDetailResponse
 
 class BeneficiariaService:
     
@@ -110,6 +109,7 @@ class BeneficiariaService:
             .where(Beneficiaria.id_beneficiaria == beneficiaria_id)
             .options(
                 selectinload(Beneficiaria.expediente).selectinload(Expediente.direccion),
+                selectinload(Beneficiaria.expediente).selectinload(Expediente.beneficiarias).selectinload(Beneficiaria.estado_beneficiaria),
                 selectinload(Beneficiaria.institucion),
                 selectinload(Beneficiaria.estado_beneficiaria),
                 selectinload(Beneficiaria.lugar_nacimiento),
@@ -123,66 +123,8 @@ class BeneficiariaService:
         if not beneficiaria:
             return None
 
-        # Obtener hermanas
-        hermanas_stmt = (
-            select(Beneficiaria)
-            .where(
-                Beneficiaria.id_expediente == beneficiaria.id_expediente,
-                Beneficiaria.id_beneficiaria != beneficiaria.id_beneficiaria
-            )
-            .options(
-                selectinload(Beneficiaria.expediente),
-                selectinload(Beneficiaria.estado_beneficiaria)
-            )
-        )
-        hermanas_result = await db.execute(hermanas_stmt)
-        hermanas = hermanas_result.scalars().all()
-
-        # Construir el diccionario de respuesta
-        return {
-            "id_beneficiaria": beneficiaria.id_beneficiaria,
-            "nombres": beneficiaria.nombres,
-            "apellidos": beneficiaria.apellidos,
-            "cedula_identidad": beneficiaria.cedula_identidad,
-            "fecha_nacimiento": beneficiaria.fecha_nacimiento,
-            "grado_actual": beneficiaria.grado_actual,
-            "fecha_egreso": beneficiaria.fecha_egreso,
-            "estado": beneficiaria.estado_beneficiaria.descripcion, 
-            "observaciones": beneficiaria.observaciones,
-            "expediente": {
-                "id_expediente": beneficiaria.expediente.id_expediente,
-                "codigo_expediente": beneficiaria.expediente.codigo_expediente,
-                "id_direccion": beneficiaria.expediente.id_direccion,
-                "fecha_apertura": beneficiaria.expediente.fecha_apertura,
-                "observaciones": beneficiaria.expediente.observaciones,
-                "direccion": beneficiaria.expediente.direccion.__dict__
-            },
-            "institucion": beneficiaria.institucion.__dict__,
-            "lugar_nacimiento": beneficiaria.lugar_nacimiento.__dict__,
-            "representantes": [
-                {
-                    "id_representante": br.representante.id_representante,
-                    "nombres": br.representante.nombres,
-                    "apellidos": br.representante.apellidos,
-                    "fecha_nacimiento": br.representante.fecha_nacimiento,
-                    "telefono_contacto": br.representante.telefono_contacto,
-                    "ocupacion_laboral": br.representante.ocupacion_laboral,
-                    "direccion": br.representante.direccion.__dict__,
-                    "parentesco": br.parentesco.descripcion 
-                }
-                for br in beneficiaria.representantes
-            ],
-            "hermanas": [
-                {
-                    "id_beneficiaria": h.id_beneficiaria,
-                    "nombres": h.nombres,
-                    "apellidos": h.apellidos,
-                    "codigo_expediente": h.expediente.codigo_expediente,
-                    "estado": h.estado_beneficiaria.descripcion
-                }
-                for h in hermanas
-            ]
-        }
+        # Pydantic valida y construye todo automáticamente en una sola línea
+        return BeneficiariaDetailResponse.model_validate(beneficiaria)
     
     @staticmethod
     async def crear_beneficiaria(db: AsyncSession, beneficiaria_in: BeneficiariaCreate):

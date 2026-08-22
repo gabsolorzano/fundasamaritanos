@@ -26,7 +26,7 @@ async def list_expedientes(
     activo: Optional[bool] = Query(None, description="Filtrar por activos (true) o inactivos/historial (false)"),
     db: AsyncSession = Depends(get_db)
 ):
-    """Lista todos los expedientes, con opción opcional de filtrar por estado activo."""
+    #Lista todos los expedientes, con opción opcional de filtrar por estado activo.
     return await ExpedienteService.listar_expedientes(db, skip=skip, limit=limit, activo=activo)
 
 @router.get("/{expediente_id}", response_model=ExpedienteDetailResponse)
@@ -34,7 +34,7 @@ async def get_expediente(
     expediente_id: int,
     db: AsyncSession = Depends(get_db)
 ):
-    """Obtiene el detalle completo de un expediente, incluyendo su dirección y las beneficiarias asociadas."""
+    #Obtiene el detalle completo de un expediente, incluyendo su dirección y las beneficiarias asociadas.
     expediente = await ExpedienteService.obtener_expediente_por_id(db, expediente_id)
     if not expediente:
         raise HTTPException(
@@ -48,7 +48,7 @@ async def create_expediente(
     expediente_in: ExpedienteCreate,
     db: AsyncSession = Depends(get_db)
 ):
-    """Crea una nueva carpeta familiar (expediente)."""
+    #Crea una nueva carpeta familiar (expediente).
     return await ExpedienteService.crear_expediente(db, expediente_in)
 
 @router.put("/{expediente_id}", response_model=ExpedienteResponse)
@@ -57,7 +57,7 @@ async def update_expediente(
     expediente_in: ExpedienteUpdate,
     db: AsyncSession = Depends(get_db)
 ):
-    """Actualiza la información o las observaciones de un expediente."""
+    #Actualiza la información o las observaciones de un expediente.
     expediente_actualizado = await ExpedienteService.actualizar_expediente(db, expediente_id, expediente_in)
     if not expediente_actualizado:
         raise HTTPException(
@@ -71,7 +71,7 @@ async def delete_expediente(
     expediente_id: int,
     db: AsyncSession = Depends(get_db)
 ):
-    """Desactiva lógicamente un expediente si no tiene beneficiarias activas."""
+    #Desactiva lógicamente un expediente si no tiene beneficiarias activas.
     try:
         expediente_desactivado = await ExpedienteService.desactivar_expediente(db, expediente_id)
         if not expediente_desactivado:

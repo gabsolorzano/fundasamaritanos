@@ -10,7 +10,7 @@ class ExpedienteService:
     
     @staticmethod
     async def listar_expedientes(db: AsyncSession, skip: int = 0, limit: int = 100, activo: Optional[bool] = None):
-        """Lista expedientes, permitiendo filtrar opcionalmente por activos o inactivos (historial)."""
+        #Lista expedientes, permitiendo filtrar opcionalmente por activos o inactivos (historial).
         stmt = select(Expediente)
         
         # Si se envía un filtro de activo/inactivo, lo aplicamos
@@ -23,7 +23,7 @@ class ExpedienteService:
 
     @staticmethod
     async def obtener_expediente_por_id(db: AsyncSession, expediente_id: int):
-        """Obtiene un expediente específico precargando su dirección y todas sus beneficiarias."""
+        #Obtiene un expediente específico precargando su dirección y todas sus beneficiarias.
         stmt = (
             select(Expediente)
             .options(
@@ -37,7 +37,7 @@ class ExpedienteService:
 
     @staticmethod
     async def crear_expediente(db: AsyncSession, expediente_in: ExpedienteCreate):
-        """Crea un nuevo expediente en la base de datos."""
+        #Crea un nuevo expediente en la base de datos.
         nuevo_expediente = Expediente(**expediente_in.model_dump())
         db.add(nuevo_expediente)
         await db.commit()
@@ -46,7 +46,7 @@ class ExpedienteService:
 
     @staticmethod
     async def actualizar_expediente(db: AsyncSession, expediente_id: int, expediente_data: ExpedienteUpdate):
-        """Actualiza un expediente existente (parcialmente)."""
+        #Actualiza un expediente existente (parcialmente).
         expediente = await ExpedienteService.obtener_expediente_por_id(db, expediente_id)
         if not expediente:
             return None
@@ -61,14 +61,25 @@ class ExpedienteService:
 
     @staticmethod
     async def desactivar_expediente(db: AsyncSession, expediente_id: int):
-        """Realiza un borrado lógico (desactivación) validando si tiene beneficiarias."""
+        
+        #Anula/desactiva un expediente inteligentemente:
+        #Si hay alguna niña activa (id_estado_beneficiaria != 4), bloquea la anulación.
+        #Si todas las niñas están anuladas (estado 4) o no tiene niñas, permite anular el expediente.
+        
         expediente = await ExpedienteService.obtener_expediente_por_id(db, expediente_id)
         if not expediente:
             return None
         
-        if expediente.beneficiarias and len(expediente.beneficiarias) > 0:
-            raise ValueError("No se puede desactivar el expediente porque tiene beneficiarias asociadas.")
+        # Validamos las beneficiarias asociadas
+        if expediente.beneficiarias:
+            for beneficiaria in expediente.beneficiarias:
+                if beneficiaria.id_estado_beneficiaria != 4:
+                    raise ValueError(
+                        f"No se puede anular el expediente porque la beneficiaria "
+                        f"{beneficiaria.nombres} {beneficiaria.apellidos} se encuentra activa (Estado ID: {beneficiaria.id_estado_beneficiaria})."
+                    )
         
+        # Si pasó la validación, procedemos a desactivar el expediente
         expediente.activo = False
         await db.commit()
         await db.refresh(expediente)
