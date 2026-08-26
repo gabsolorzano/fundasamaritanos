@@ -128,25 +128,32 @@ class BeneficiariaService:
     
     @staticmethod
     async def crear_beneficiaria(db: AsyncSession, beneficiaria_in: BeneficiariaCreate):
-        #Convertimos los datos validados del esquema Pydantic a un diccionario 
-        #y se los pasamos a nuestro modelo de SQLAlchemy.
-        nueva_beneficiaria = Beneficiaria(**beneficiaria_in.model_dump())
+        datos_dict = beneficiaria_in.model_dump()
         
-        #Añadimos el nuevo objeto a la sesión de trabajo actual.
+        # Extraemos los campos que pertenecen a la tabla intermedia
+        id_representante = datos_dict.pop("id_representante", None)
+        id_parentesco = datos_dict.pop("id_parentesco", None)
+
+        # Creamos la beneficiaria
+        nueva_beneficiaria = Beneficiaria(**datos_dict)
         db.add(nueva_beneficiaria)
-        
-        #Hacemos "commit" para guardar físicamente los cambios en la base de datos.
         await db.commit()
-        
-        #Refrescamos el objeto para obtener los datos autogenerados por Postgres 
-        #(como el id_beneficiaria que se crea automáticamente).
         await db.refresh(nueva_beneficiaria)
+        
+        # Si se especificó un representante, creamos el vínculo en la tabla intermedia
+        if id_representante is not None:
+            vinculo = BeneficiariaRepresentante(
+                id_beneficiaria=nueva_beneficiaria.id_beneficiaria,
+                id_representante=id_representante,
+                id_parentesco=id_parentesco
+            )
+            db.add(vinculo)
+            await db.commit()
         
         return nueva_beneficiaria  
     
     @staticmethod
     async def actualizar_beneficiaria(db: AsyncSession, beneficiaria_id: int, datos_actualizacion):
-        # Buscamos a la beneficiaria
         stmt = select(Beneficiaria).where(Beneficiaria.id_beneficiaria == beneficiaria_id)
         result = await db.execute(stmt)
         beneficiaria = result.scalar_one_or_none()
@@ -154,22 +161,48 @@ class BeneficiariaService:
         if not beneficiaria:
             return None
             
-        # CONVERTIMOS EL OBJETO PYDANTIC A DICCIONARIO IGNORANDO LOS VALORES QUE NO SE ENVIARON (None)
         datos_dict = datos_actualizacion.model_dump(exclude_unset=True)
+        
+        # Verificamos si se enviaron los campos de representante/parentesco en el payload de actualización
+        has_representante = "id_representante" in datos_dict
+        id_representante = datos_dict.pop("id_representante", None)
+        
+        has_parentesco = "id_parentesco" in datos_dict
+        id_parentesco = datos_dict.pop("id_parentesco", None)
 
-        # Actualizamos los campos dinámicamente
+        # Actualizamos los campos propios de la beneficiaria dinámicamente
         for key, value in datos_dict.items():
             setattr(beneficiaria, key, value)
             
         # REGLA DE NEGOCIO: Si le cambiaron el estado, verificamos si debe desactivarse
         if "id_estado_beneficiaria" in datos_dict:
             nuevo_estado_id = datos_dict["id_estado_beneficiaria"]
-            
-            # Si el nuevo estado es diferente de 1 (Activa), la marcamos como inactiva automáticamente
             if nuevo_estado_id != 1:
                 beneficiaria.activo = False
             else:
                 beneficiaria.activo = True
+
+        # Gestionamos la tabla intermedia si se incluyeron cambios de representante o parentesco
+        if has_representante or has_parentesco:
+            stmt_vinculo = select(BeneficiariaRepresentante).where(
+                BeneficiariaRepresentante.id_beneficiaria == beneficiaria_id
+            )
+            res_vinculo = await db.execute(stmt_vinculo)
+            vinculo_existente = res_vinculo.scalar_one_or_none()
+
+            if vinculo_existente:
+                if has_representante:
+                    vinculo_existente.id_representante = id_representante
+                if has_parentesco:
+                    vinculo_existente.id_parentesco = id_parentesco
+            else:
+                if id_representante is not None:
+                    nuevo_vinculo = BeneficiariaRepresentante(
+                        id_beneficiaria=beneficiaria_id,
+                        id_representante=id_representante,
+                        id_parentesco=id_parentesco
+                    )
+                    db.add(nuevo_vinculo)
 
         await db.commit()
         await db.refresh(beneficiaria)
@@ -177,27 +210,21 @@ class BeneficiariaService:
     
     @staticmethod
     async def eliminar_beneficiaria(db: AsyncSession, beneficiaria_id: int, force: bool = False):
-        # Buscamos a la beneficiaria
         stmt = select(Beneficiaria).where(Beneficiaria.id_beneficiaria == beneficiaria_id)
         result = await db.execute(stmt)
         beneficiaria = result.scalar_one_or_none()
         
-        # Si no existe, salimos
         if not beneficiaria:
             return None
             
-        # Verificamos qué tipo de borrado nos pidieron
         if force:
-            # BORRADO FÍSICO PERMANENTE (Para errores de tipeo al crear)
             await db.delete(beneficiaria)
             mensaje = f"Beneficiaria con ID {beneficiaria_id} fue eliminada PERMANENTEMENTE."
         else:
-            # BORRADO LÓGICO + CAMBIO DE ESTADO (ID 4 = Anulada)
             beneficiaria.activo = False
             beneficiaria.id_estado_beneficiaria = 4 
             mensaje = f"Beneficiaria con ID {beneficiaria_id} fue desactivada y marcada como Anulada."
         
-        # Guardamos los cambios
         await db.commit()
         
         return {"mensaje": mensaje}

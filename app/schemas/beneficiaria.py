@@ -22,6 +22,8 @@ class BeneficiariaCreate(BeneficiariaBase):
     id_institucion: int
     id_direccion_lugar_nacimiento: int
     id_estado_beneficiaria: int
+    id_representante: Optional[int] = None
+    id_parentesco: Optional[int] = None
 
 
 class BeneficiariaUpdate(BaseModel):
@@ -31,10 +33,13 @@ class BeneficiariaUpdate(BaseModel):
     fecha_nacimiento: Optional[date] = None
     grado_actual: Optional[str] = None
     fecha_egreso: Optional[date] = None
+    id_expediente: Optional[int] = None
     id_institucion: Optional[int] = None
     id_estado_beneficiaria: Optional[int] = None
     id_direccion_lugar_nacimiento: Optional[int] = None
     observaciones: Optional[str] = None
+    id_representante: Optional[int] = None
+    id_parentesco: Optional[int] = None
 
 
 class BeneficiariaResponse(BeneficiariaBase):
@@ -89,6 +94,8 @@ class BeneficiariaDetailResponse(BaseModel):
                     "fecha_nacimiento": rep.fecha_nacimiento,
                     "telefono_contacto": rep.telefono_contacto,
                     "ocupacion_laboral": rep.ocupacion_laboral,
+                    "id_direccion": rep.id_direccion,   
+                    "activo": rep.activo,
                     "direccion": rep.direccion,
                     "parentesco": br.parentesco.descripcion if br.parentesco else ""
                 }

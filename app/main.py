@@ -5,6 +5,10 @@ from app.core.deps import get_current_user
 from app.models.usuario import Usuario
 from app.routers import beneficiarias
 from app.routers import expedientes
+from app.routers import representantes
+
+
+
 
 # Configurar el esquema de OAuth2 para Swagger
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
@@ -19,6 +23,10 @@ app = FastAPI(
 app.include_router(auth.router)
 app.include_router(beneficiarias.router)  
 app.include_router(expedientes.router)
+app.include_router(representantes.router)
+
+
+
 
 @app.get("/")
 async def root():
