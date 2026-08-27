@@ -6,7 +6,7 @@ from app.models.usuario import Usuario
 from app.routers import beneficiarias
 from app.routers import expedientes
 from app.routers import representantes
-from app.routers import direccion
+from app.routers import direccion, institucion
 
 
 
@@ -25,7 +25,7 @@ app.include_router(beneficiarias.router)
 app.include_router(expedientes.router)
 app.include_router(representantes.router)
 app.include_router(direccion.router)
-
+app.include_router(institucion.router)
 
 
 @app.get("/")
