@@ -266,8 +266,8 @@ async def seed():
             id_direccion=dir_map[1],
             id_cargo=cargo_coordinador,
             cedula="12345678",
-            nombres="Admin",
-            apellidos="Sistema",
+            nombre="Admin",
+            apellido="Sistema",
             telefono="0412-0000000",
             tipo_personal="Fijo",
             estado="Activo",
@@ -277,18 +277,18 @@ async def seed():
         await session.flush()
 
         usuario = Usuario(
-            id_personal=personal.id_personal,
+            personal_id=personal.id,
             id_rol=rol_admin,
-            nombre_usuario="admin",
+            email="admin@fundasamaritanos.org",
             password_hash=bcrypt.hashpw("admin123".encode('utf-8'), bcrypt.gensalt()).decode('utf-8'),
             ultimo_acceso=datetime.now()
         )
         session.add(usuario)
         
         await session.commit()
-        print("✅ ¡Seed completado exitosamente!")
+        print("OK: ¡Seed completado exitosamente!")
         print(f"   - {len(familias)} expedientes creados.")
-        print("   - Usuario admin: admin / contraseña: admin123")
+        print("   - Usuario admin: admin@fundasamaritanos.org / contraseña: admin123")
 
 if __name__ == "__main__":
     asyncio.run(seed())

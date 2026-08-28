@@ -5,10 +5,10 @@ from app.core.db import Base
 class Usuario(Base):
     __tablename__ = "usuarios"
 
-    id_usuario = Column(Integer, primary_key=True, index=True)
-    id_personal = Column(Integer, ForeignKey("personal.id_personal"), unique=True, nullable=False)
+    id = Column(Integer, primary_key=True, index=True)
+    personal_id = Column(Integer, ForeignKey("personal.id"), unique=True, nullable=False)
     id_rol = Column(Integer, ForeignKey("roles.id_rol"), nullable=False)
-    nombre_usuario = Column(String(50), unique=True, nullable=False)
+    email = Column(String(100), unique=True, nullable=False)
     password_hash = Column(String(255), nullable=False)
     ultimo_acceso = Column(DateTime, server_default=func.now(), onupdate=func.now())
 

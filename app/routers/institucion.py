@@ -8,7 +8,7 @@ from app.schemas.institucion import InstitucionCreate, InstitucionResponse
 from app.services.institucion import get_instituciones, get_institucion_by_id, create_institucion
 
 router = APIRouter(
-    prefix="/instituciones",  # Cambia a "/instituciones" en el otro archivo
+    prefix="/instituciones",  
     tags=["Instituciones"],
     dependencies=[Depends(get_current_user)]
 )

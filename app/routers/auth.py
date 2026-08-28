@@ -26,7 +26,7 @@ async def login(
     #Consultar el usuario cargando explícitamente las relaciones 'personal' y 'rol'
     stmt = (
         select(Usuario)
-        .where(Usuario.nombre_usuario == form_data.username)
+        .where(Usuario.email == form_data.username)
         .options(
             selectinload(Usuario.personal),  # Carga la relación con Personal
             selectinload(Usuario.rol)        # Carga la relación con Rol
@@ -54,7 +54,7 @@ async def login(
     #Datos para el token (sub = ID del usuario, rol = nombre del rol)
     #Convertimos id_usuario a str por estándar JWT
     token_data = {
-        "sub": str(user.id_usuario),  # JWT recomienda string en 'sub'
+        "sub": str(user.id),  # JWT recomienda string en 'sub'
         "rol": user.rol.nombre_rol    # user.rol ya está cargado por selectinload
     }
     access_token = create_access_token(token_data)

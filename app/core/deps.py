@@ -45,7 +45,7 @@ async def get_current_user(
     # Buscar el usuario en la base de datos cargando relaciones necesarias
     stmt = (
         select(Usuario)
-        .where(Usuario.id_usuario == user_id_int)
+        .where(Usuario.id == user_id_int)
         .options(
             selectinload(Usuario.personal).selectinload(Personal.cargo),  # Cargamos personal y su cargo
             selectinload(Usuario.rol)

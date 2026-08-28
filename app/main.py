@@ -6,8 +6,7 @@ from app.models.usuario import Usuario
 from app.routers import beneficiarias
 from app.routers import expedientes
 from app.routers import representantes
-from app.routers import direccion, institucion
-
+from app.routers import direccion, institucion, personal
 
 
 # Configurar el esquema de OAuth2 para Swagger
@@ -26,6 +25,7 @@ app.include_router(expedientes.router)
 app.include_router(representantes.router)
 app.include_router(direccion.router)
 app.include_router(institucion.router)
+app.include_router(personal.router)
 
 
 @app.get("/")
@@ -35,12 +35,12 @@ async def root():
 @app.get("/me")
 async def read_users_me(current_user: Usuario = Depends(get_current_user)):
     return {
-        "id": current_user.id_usuario,
-        "username": current_user.nombre_usuario,
+        "id": current_user.id,
+        "email": current_user.email,
         "rol": current_user.rol.nombre_rol,
         "personal": {
-            "nombres": current_user.personal.nombres,
-            "apellidos": current_user.personal.apellidos,
+            "nombre": current_user.personal.nombre,
+            "apellido": current_user.personal.apellido,
             "cargo": current_user.personal.cargo.descripcion
         }
     }
