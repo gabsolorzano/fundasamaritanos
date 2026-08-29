@@ -9,6 +9,12 @@ class InstitucionBase(BaseModel):
 class InstitucionCreate(InstitucionBase):
     pass
 
+class InstitucionUpdate(BaseModel):
+    """Todos los campos son opcionales para permitir actualizaciones parciales."""
+    nombre: Optional[str] = None
+    telefono: Optional[str] = None
+    id_direccion: Optional[int] = None
+
 class InstitucionResponse(InstitucionBase):
     id_institucion: int
 

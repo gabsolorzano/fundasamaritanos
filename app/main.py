@@ -36,7 +36,7 @@ async def root():
 async def read_users_me(current_user: Usuario = Depends(get_current_user)):
     return {
         "id": current_user.id,
-        "email": current_user.email,
+        "nombre_usuario": current_user.nombre_usuario,
         "rol": current_user.rol.nombre_rol,
         "personal": {
             "nombre": current_user.personal.nombre,

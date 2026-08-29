@@ -26,7 +26,7 @@ async def login(
     #Consultar el usuario cargando explícitamente las relaciones 'personal' y 'rol'
     stmt = (
         select(Usuario)
-        .where(Usuario.email == form_data.username)
+        .where(Usuario.nombre_usuario == form_data.username)
         .options(
             selectinload(Usuario.personal),  # Carga la relación con Personal
             selectinload(Usuario.rol)        # Carga la relación con Rol

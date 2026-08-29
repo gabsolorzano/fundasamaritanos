@@ -279,7 +279,7 @@ async def seed():
         usuario = Usuario(
             personal_id=personal.id,
             id_rol=rol_admin,
-            email="admin@fundasamaritanos.org",
+            nombre_usuario="admin",
             password_hash=bcrypt.hashpw("admin123".encode('utf-8'), bcrypt.gensalt()).decode('utf-8'),
             ultimo_acceso=datetime.now()
         )
@@ -288,7 +288,7 @@ async def seed():
         await session.commit()
         print("OK: ¡Seed completado exitosamente!")
         print(f"   - {len(familias)} expedientes creados.")
-        print("   - Usuario admin: admin@fundasamaritanos.org / contraseña: admin123")
+        print("   - Usuario admin: admin / contrasena: admin123")
 
 if __name__ == "__main__":
     asyncio.run(seed())

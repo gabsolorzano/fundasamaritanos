@@ -4,8 +4,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.deps import get_current_user
 
 from app.core.db import get_db
-from app.schemas.institucion import InstitucionCreate, InstitucionResponse
-from app.services.institucion import get_instituciones, get_institucion_by_id, create_institucion
+from app.schemas.institucion import InstitucionCreate, InstitucionUpdate, InstitucionResponse
+from app.services.institucion import get_instituciones, get_institucion_by_id, create_institucion, update_institucion
 
 router = APIRouter(
     prefix="/instituciones",  
@@ -38,3 +38,12 @@ async def registrar_institucion(
     db: AsyncSession = Depends(get_db)
 ):
     return await create_institucion(db, institucion_in=institucion_in)
+
+@router.patch("/{institucion_id}", response_model=InstitucionResponse)
+async def actualizar_institucion(
+    institucion_id: int,
+    datos: InstitucionUpdate,
+    db: AsyncSession = Depends(get_db)
+):
+    # Actualiza parcialmente los campos enviados (nombre, telefono, id_direccion)
+    return await update_institucion(db, institucion_id=institucion_id, datos=datos)
