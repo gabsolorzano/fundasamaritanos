@@ -32,10 +32,10 @@ async def seed():
         print("Insertando catálogos...")
         
         # Direcciones
-        dir1 = Direccion(calle_av="Sector Divino Niño", edificio_casa="", urbanizacion="La Rinconada", ciudad="Caracas", municipio="Libertador", estado="Distrito Capital")
-        dir2 = Direccion(calle_av="", edificio_casa="", urbanizacion="", ciudad="Guanare", municipio="", estado="Portuguesa")
-        dir3 = Direccion(calle_av="", edificio_casa="", urbanizacion="", ciudad="Carupano", municipio="", estado="Sucre")
-        dir4 = Direccion(calle_av="", edificio_casa="", urbanizacion="", ciudad="Margarita", municipio="", estado="Nueva Esparta")
+        dir1 = Direccion(calle_av="Sector Divino Niño", edificio_casa=None, urbanizacion="La Rinconada", ciudad="Caracas", municipio="Libertador", estado="Distrito Capital")
+        dir2 = Direccion(calle_av="Sin especificar", edificio_casa=None, urbanizacion="Centro", ciudad="Guanare", municipio="Guanare", estado="Portuguesa")
+        dir3 = Direccion(calle_av="Sin especificar", edificio_casa=None, urbanizacion="Centro", ciudad="Carupano", municipio="Bermudez", estado="Sucre")
+        dir4 = Direccion(calle_av="Sin especificar", edificio_casa=None, urbanizacion="Centro", ciudad="Porlamar", municipio="Marino", estado="Nueva Esparta")
         session.add_all([dir1, dir2, dir3, dir4])
         await session.flush()  #Para obtener IDs
         dir_map = {1: dir1.id_direccion, 2: dir2.id_direccion, 3: dir3.id_direccion, 4: dir4.id_direccion}
