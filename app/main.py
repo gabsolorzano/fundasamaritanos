@@ -11,6 +11,8 @@ from app.routers import roles
 from app.routers import dashboard
 
 
+from fastapi.middleware.cors import CORSMiddleware
+
 # Configurar el esquema de OAuth2 para Swagger
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
@@ -18,6 +20,15 @@ app = FastAPI(
     title="Fundasamaritanos API",
     version="1.0.0",
     swagger_ui_oauth2_redirect_url="/docs/oauth2-redirect"
+)
+
+# Configuración de CORS para permitir conexiones desde el Frontend (React, Vite, Next.js, etc.)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # En producción se puede restringir a los dominios del frontend
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 #Incluir routers
