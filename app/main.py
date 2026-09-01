@@ -8,6 +8,7 @@ from app.routers import expedientes
 from app.routers import representantes
 from app.routers import direccion, institucion, personal
 from app.routers import roles
+from app.routers import dashboard
 
 
 # Configurar el esquema de OAuth2 para Swagger
@@ -28,6 +29,7 @@ app.include_router(direccion.router)
 app.include_router(institucion.router)
 app.include_router(personal.router)
 app.include_router(roles.router)
+app.include_router(dashboard.router)
 
 
 
