@@ -22,7 +22,15 @@ async def crear_usuario_para_personal(
             detail="Personal no encontrado"
         )
 
-    # 2. Comprobar si el trabajador ya tiene un Usuario asignado (relación 1 a 1)
+    # 2. REGLA DE NEGOCIO: Solo personal con estado 'Activo' puede tener usuario
+    if personal.estado.strip().lower() != "activo":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"No se puede crear un usuario para personal con estado '{personal.estado}'. "
+                   f"Solo el personal con estado 'Activo' puede tener credenciales de acceso."
+        )
+
+    # 3. Comprobar si el trabajador ya tiene un Usuario asignado (relación 1 a 1)
     stmt_usuario_existente = select(Usuario).where(Usuario.personal_id == personal_id)
     result_usuario_existente = await db.execute(stmt_usuario_existente)
     usuario_existente = result_usuario_existente.scalar_one_or_none()

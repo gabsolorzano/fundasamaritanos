@@ -48,12 +48,35 @@ class BeneficiariaCreate(BeneficiariaBase):
     id_representante: Optional[int] = None
     id_parentesco: Optional[int] = None
 
+    # IDs de estado (deben coincidir con la BD)
+    _ESTADO_ACTIVA = 1
+    _ESTADO_EGRESADA = 2
+    _ESTADO_TRASLADADA = 3
+
     @model_validator(mode="after")
-    def validar_representante_y_parentesco(self):
+    def validar_estado_y_representante(self):
+        # — Coherencia estado / fecha_egreso —
+        estado_id = self.id_estado_beneficiaria
+        fecha_egreso = self.fecha_egreso
+
+        if estado_id in (self._ESTADO_EGRESADA, self._ESTADO_TRASLADADA):
+            if fecha_egreso is None:
+                raise ValueError(
+                    "La fecha de egreso es obligatoria cuando el estado es 'Egresada' o 'Trasladada'."
+                )
+        elif estado_id == self._ESTADO_ACTIVA:
+            if fecha_egreso is not None:
+                raise ValueError(
+                    "Una beneficiaria con estado 'Activa' no puede tener fecha de egreso. "
+                    "Establece fecha_egreso en null."
+                )
+
+        # — Representante y parentesco deben ir juntos —
         rep = self.id_representante
         par = self.id_parentesco
         if (rep is not None and par is None) or (rep is None and par is not None):
             raise ValueError("Debe proporcionar tanto el representante como el parentesco juntos")
+
         return self
 
 
@@ -88,17 +111,43 @@ class BeneficiariaUpdate(BaseModel):
             raise ValueError("La fecha de nacimiento no puede ser una fecha futura")
         return v
 
+    # IDs de estado (deben coincidir con la BD)
+    _ESTADO_ACTIVA = 1
+    _ESTADO_EGRESADA = 2
+    _ESTADO_TRASLADADA = 3
+
     @model_validator(mode="after")
     def validar_fechas_y_representante(self):
+        # — Coherencia fechas básica —
         if self.fecha_egreso and self.fecha_nacimiento:
             if self.fecha_egreso < self.fecha_nacimiento:
                 raise ValueError("La fecha de egreso no puede ser anterior a la fecha de nacimiento")
-        
+
+        # — Coherencia estado / fecha_egreso (solo si se envía id_estado_beneficiaria) —
+        if self.id_estado_beneficiaria is not None:
+            estado_id = self.id_estado_beneficiaria
+            fecha_egreso = self.fecha_egreso
+
+            if estado_id in (self._ESTADO_EGRESADA, self._ESTADO_TRASLADADA):
+                if fecha_egreso is None:
+                    raise ValueError(
+                        "La fecha de egreso es obligatoria cuando el estado es 'Egresada' o 'Trasladada'."
+                    )
+            elif estado_id == self._ESTADO_ACTIVA:
+                if fecha_egreso is not None:
+                    raise ValueError(
+                        "Una beneficiaria con estado 'Activa' no puede tener fecha de egreso. "
+                        "Establece fecha_egreso en null."
+                    )
+
+        # — Representante y parentesco deben ir juntos —
         rep = self.id_representante
         par = self.id_parentesco
         if (rep is not None and par is None) or (rep is None and par is not None):
             raise ValueError("Debe proporcionar tanto el representante como el parentesco juntos")
+
         return self
+
 
 
 class BeneficiariaResponse(BeneficiariaBase):
