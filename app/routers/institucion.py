@@ -1,8 +1,7 @@
-# app/routers/institucion.py
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.core.deps import get_current_user
+from app.core.deps import get_current_user, require_editor_or_admin, require_admin_only
 
 from app.core.db import get_db
 from app.schemas.institucion import (
@@ -51,21 +50,31 @@ async def obtener_institucion(
         )
     return institucion
 
-@router.post("/", response_model=InstitucionResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/", 
+    response_model=InstitucionResponse, 
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_editor_or_admin)]
+)
 async def registrar_institucion(
     institucion_in: InstitucionCreate,
     db: AsyncSession = Depends(get_db)
 ):
-    # Registra una nueva institución
+    # Registra una nueva institución (Requiere rol Editor o Administrador)
     return await create_institucion(db, institucion_in=institucion_in)
 
-@router.patch("/{institucion_id}", response_model=InstitucionResponse, status_code=status.HTTP_200_OK)
+@router.patch(
+    "/{institucion_id}", 
+    response_model=InstitucionResponse, 
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_editor_or_admin)]
+)
 async def actualizar_institucion(
     institucion_id: int,
     datos: InstitucionUpdate,
     db: AsyncSession = Depends(get_db)
 ):
-    # Actualiza parcialmente los campos de una institución existente
+    # Actualiza parcialmente los campos de una institución existente (Requiere rol Editor o Administrador)
     institucion_actualizada = await update_institucion(db, institucion_id=institucion_id, datos=datos)
     if not institucion_actualizada:
         raise HTTPException(
@@ -74,12 +83,16 @@ async def actualizar_institucion(
         )
     return institucion_actualizada
 
-@router.delete("/{institucion_id}", status_code=status.HTTP_200_OK)
+@router.delete(
+    "/{institucion_id}", 
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_admin_only)]
+)
 async def eliminar_institucion(
     institucion_id: int,
     db: AsyncSession = Depends(get_db)
 ):
-    # Elimina una institución si no tiene beneficiarias asignadas
+    # Elimina una institución si no tiene beneficiarias asignadas (Solo Administrador)
     resultado = await delete_institucion(db, institucion_id=institucion_id)
     if not resultado:
         raise HTTPException(

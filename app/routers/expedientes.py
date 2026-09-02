@@ -5,7 +5,7 @@ from typing import List, Optional
 from datetime import date
 
 from app.core.db import get_db
-from app.core.deps import get_current_user
+from app.core.deps import get_current_user, require_editor_or_admin, require_admin_only
 from app.schemas.expediente import (
     ExpedienteResponse, 
     ExpedienteDetailResponse, 
@@ -54,21 +54,31 @@ async def get_expediente(
         )
     return expediente
 
-@router.post("/", response_model=ExpedienteResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/", 
+    response_model=ExpedienteResponse, 
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_editor_or_admin)]
+)
 async def create_expediente(
     expediente_in: ExpedienteCreate,
     db: AsyncSession = Depends(get_db)
 ):
-    # Crea un nuevo expediente familiar
+    # Crea un nuevo expediente familiar (Requiere rol Editor o Administrador)
     return await ExpedienteService.crear_expediente(db, expediente_in)
 
-@router.put("/{expediente_id}", response_model=ExpedienteResponse, status_code=status.HTTP_200_OK)
+@router.put(
+    "/{expediente_id}", 
+    response_model=ExpedienteResponse, 
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_editor_or_admin)]
+)
 async def update_expediente(
     expediente_id: int,
     expediente_in: ExpedienteUpdate,
     db: AsyncSession = Depends(get_db)
 ):
-    # Actualiza un expediente existente
+    # Actualiza un expediente existente (Requiere rol Editor o Administrador)
     expediente_actualizado = await ExpedienteService.actualizar_expediente(db, expediente_id, expediente_in)
     if not expediente_actualizado:
         raise HTTPException(
@@ -77,13 +87,17 @@ async def update_expediente(
         )
     return expediente_actualizado
 
-@router.delete("/{expediente_id}", status_code=status.HTTP_200_OK)
+@router.delete(
+    "/{expediente_id}", 
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_admin_only)]
+)
 async def delete_expediente(
     expediente_id: int,
     force: bool = Query(False, description="Si es True, elimina permanentemente el expediente (borrado físico)."),
     db: AsyncSession = Depends(get_db)
 ):
-    # Desactiva (borrado lógico) o elimina permanentemente un expediente
+    # Desactiva (borrado lógico) o elimina permanentemente un expediente (Solo Administrador)
     resultado = await ExpedienteService.eliminar_expediente(db, expediente_id, force=force)
     if not resultado:
         raise HTTPException(

@@ -1,8 +1,7 @@
-# app/routers/direccion.py
 from typing import List, Optional
 from fastapi import APIRouter, Depends, status, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.core.deps import get_current_user
+from app.core.deps import get_current_user, require_editor_or_admin, require_admin_only
 
 from app.core.db import get_db
 from app.schemas.direccion import DireccionCreate, DireccionUpdate, DireccionResponse
@@ -46,21 +45,31 @@ async def obtener_direccion_por_id(
         )
     return direccion
 
-@router.post("/", response_model=DireccionResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/", 
+    response_model=DireccionResponse, 
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_editor_or_admin)]
+)
 async def registrar_direccion(
     direccion_in: DireccionCreate,
     db: AsyncSession = Depends(get_db)
 ):
-    # Registra una nueva dirección en la base de datos
+    # Registra una nueva dirección en la base de datos (Requiere rol Editor o Administrador)
     return await direccion_service.create_direccion(db, direccion_in=direccion_in)
 
-@router.put("/{direccion_id}", response_model=DireccionResponse, status_code=status.HTTP_200_OK)
+@router.put(
+    "/{direccion_id}", 
+    response_model=DireccionResponse, 
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_editor_or_admin)]
+)
 async def actualizar_direccion(
     direccion_id: int,
     direccion_in: DireccionUpdate,
     db: AsyncSession = Depends(get_db)
 ):
-    # Actualiza parcialmente los datos de una dirección existente
+    # Actualiza parcialmente los datos de una dirección existente (Requiere rol Editor o Administrador)
     direccion_actualizada = await direccion_service.update_direccion(db, direccion_id=direccion_id, datos=direccion_in)
     if not direccion_actualizada:
         raise HTTPException(
@@ -69,12 +78,16 @@ async def actualizar_direccion(
         )
     return direccion_actualizada
 
-@router.delete("/{direccion_id}", status_code=status.HTTP_200_OK)
+@router.delete(
+    "/{direccion_id}", 
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_admin_only)]
+)
 async def eliminar_direccion(
     direccion_id: int,
     db: AsyncSession = Depends(get_db)
 ):
-    # Elimina una dirección si no está asociada a ningún otro registro del sistema
+    # Elimina una dirección si no está asociada a ningún otro registro del sistema (Solo Administrador)
     resultado = await direccion_service.delete_direccion(db, direccion_id=direccion_id)
     if not resultado:
         raise HTTPException(

@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 
 from app.core.db import get_db
-from app.core.deps import get_current_user
+from app.core.deps import get_current_user, require_editor_or_admin, require_admin_only
 from app.schemas.representante import (
     RepresentanteResponse,
     RepresentanteDetailResponse,
@@ -53,21 +53,31 @@ async def get_representante(
         )
     return representante
 
-@router.post("/", response_model=RepresentanteResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/", 
+    response_model=RepresentanteResponse, 
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_editor_or_admin)]
+)
 async def create_representante(
     representante_in: RepresentanteCreate,
     db: AsyncSession = Depends(get_db)
 ):
-    # Registra un nuevo representante
+    # Registra un nuevo representante (Requiere rol Editor o Administrador)
     return await RepresentanteService.crear_representante(db, representante_in)
 
-@router.put("/{representante_id}", response_model=RepresentanteResponse, status_code=status.HTTP_200_OK)
+@router.put(
+    "/{representante_id}", 
+    response_model=RepresentanteResponse, 
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_editor_or_admin)]
+)
 async def update_representante(
     representante_id: int,
     representante_in: RepresentanteUpdate,
     db: AsyncSession = Depends(get_db)
 ):
-    # Actualiza los datos de un representante existente
+    # Actualiza los datos de un representante existente (Requiere rol Editor o Administrador)
     representante_actualizado = await RepresentanteService.actualizar_representante(db, representante_id, representante_in)
     if not representante_actualizado:
         raise HTTPException(
@@ -76,13 +86,17 @@ async def update_representante(
         )
     return representante_actualizado
 
-@router.delete("/{representante_id}", status_code=status.HTTP_200_OK)
+@router.delete(
+    "/{representante_id}", 
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_admin_only)]
+)
 async def delete_representante(
     representante_id: int,
     force: bool = Query(False, description="Si es True, elimina permanentemente al representante (borrado físico)."),
     db: AsyncSession = Depends(get_db)
 ):
-    # Desactiva (borrado lógico) o elimina permanentemente a un representante
+    # Desactiva (borrado lógico) o elimina permanentemente a un representante (Solo Administrador)
     resultado = await RepresentanteService.eliminar_representante(db, representante_id, force=force)
     if not resultado:
         raise HTTPException(

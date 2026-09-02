@@ -6,7 +6,7 @@ from typing import Optional, List
 from datetime import date
 
 from app.core.db import get_db
-from app.core.deps import get_current_user
+from app.core.deps import get_current_user, require_editor_or_admin, require_admin_only
 from app.schemas.beneficiaria import (
     BeneficiariaResponse,
     BeneficiariaDetailResponse,
@@ -68,21 +68,31 @@ async def get_beneficiaria(
 
     return beneficiaria
 
-@router.post("/", response_model=BeneficiariaResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/", 
+    response_model=BeneficiariaResponse, 
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_editor_or_admin)]
+)
 async def create_beneficiaria(
     beneficiaria_in: BeneficiariaCreate,
     db: AsyncSession = Depends(get_db)
 ):
-    # Registra una nueva beneficiaria
+    # Registra una nueva beneficiaria (Requiere rol Editor o Administrador)
     return await BeneficiariaService.crear_beneficiaria(db, beneficiaria_in)
 
-@router.put("/{beneficiaria_id}", response_model=BeneficiariaResponse, status_code=status.HTTP_200_OK)
+@router.put(
+    "/{beneficiaria_id}", 
+    response_model=BeneficiariaResponse, 
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_editor_or_admin)]
+)
 async def update_beneficiaria(
     beneficiaria_id: int,
     beneficiaria_in: BeneficiariaUpdate,
     db: AsyncSession = Depends(get_db)
 ):
-    # Actualiza los datos de una beneficiaria existente
+    # Actualiza los datos de una beneficiaria existente (Requiere rol Editor o Administrador)
     beneficiaria_actualizada = await BeneficiariaService.actualizar_beneficiaria(
         db, 
         beneficiaria_id, 
@@ -97,13 +107,17 @@ async def update_beneficiaria(
         
     return beneficiaria_actualizada
 
-@router.delete("/{beneficiaria_id}", status_code=status.HTTP_200_OK)
+@router.delete(
+    "/{beneficiaria_id}", 
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_admin_only)]
+)
 async def delete_beneficiaria(
     beneficiaria_id: int,
     force: bool = Query(False, description="Si es True, elimina permanentemente el registro (borrado físico)"),
     db: AsyncSession = Depends(get_db)
 ):
-    # Desactiva (borrado lógico) o elimina permanentemente a una beneficiaria
+    # Desactiva (borrado lógico) o elimina permanentemente a una beneficiaria (Solo Administrador)
     resultado = await BeneficiariaService.eliminar_beneficiaria(db, beneficiaria_id, force)
     
     if not resultado:

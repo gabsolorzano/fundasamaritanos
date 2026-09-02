@@ -260,9 +260,15 @@ async def seed():
                     )
                     session.add(rel)
 
-        #USUARIO ADMIN
-        print("Creando usuario administrador...")
-        personal = Personal(
+        # Roles IDs
+        rol_editor = (await session.execute(text("SELECT id_rol FROM roles WHERE nombre_rol = 'Editor'"))).scalar()
+        rol_lector = (await session.execute(text("SELECT id_rol FROM roles WHERE nombre_rol = 'Lector'"))).scalar()
+
+        #USUARIOS DEL SISTEMA (ADMIN, EDITOR, LECTOR)
+        print("Creando usuarios del sistema (Admin, Editor, Lector)...")
+        
+        # 1. Admin
+        personal_admin = Personal(
             id_direccion=dir_map[1],
             id_cargo=cargo_coordinador,
             cedula="12345678",
@@ -273,22 +279,72 @@ async def seed():
             estado="Activo",
             activo=True
         )
-        session.add(personal)
+        session.add(personal_admin)
         await session.flush()
 
-        usuario = Usuario(
-            personal_id=personal.id,
+        usuario_admin = Usuario(
+            personal_id=personal_admin.id,
             id_rol=rol_admin,
             nombre_usuario="admin",
             password_hash=bcrypt.hashpw("admin123".encode('utf-8'), bcrypt.gensalt()).decode('utf-8'),
             ultimo_acceso=datetime.now()
         )
-        session.add(usuario)
+        session.add(usuario_admin)
+
+        # 2. Editor
+        personal_editor = Personal(
+            id_direccion=dir_map[1],
+            id_cargo=cargo_coordinador,
+            cedula="23456789",
+            nombre="Elena",
+            apellido="Editora",
+            telefono="0414-1112233",
+            tipo_personal="Fijo",
+            estado="Activo",
+            activo=True
+        )
+        session.add(personal_editor)
+        await session.flush()
+
+        usuario_editor = Usuario(
+            personal_id=personal_editor.id,
+            id_rol=rol_editor,
+            nombre_usuario="editor",
+            password_hash=bcrypt.hashpw("editor123".encode('utf-8'), bcrypt.gensalt()).decode('utf-8'),
+            ultimo_acceso=datetime.now()
+        )
+        session.add(usuario_editor)
+
+        # 3. Lector
+        personal_lector = Personal(
+            id_direccion=dir_map[1],
+            id_cargo=cargo_coordinador,
+            cedula="34567890",
+            nombre="Lucas",
+            apellido="Lector",
+            telefono="0416-9988776",
+            tipo_personal="Fijo",
+            estado="Activo",
+            activo=True
+        )
+        session.add(personal_lector)
+        await session.flush()
+
+        usuario_lector = Usuario(
+            personal_id=personal_lector.id,
+            id_rol=rol_lector,
+            nombre_usuario="lector",
+            password_hash=bcrypt.hashpw("lector123".encode('utf-8'), bcrypt.gensalt()).decode('utf-8'),
+            ultimo_acceso=datetime.now()
+        )
+        session.add(usuario_lector)
         
         await session.commit()
         print("OK: ¡Seed completado exitosamente!")
         print(f"   - {len(familias)} expedientes creados.")
-        print("   - Usuario admin: admin / contrasena: admin123")
+        print("   - Usuario Admin : admin  / pass: admin123  (Acceso total)")
+        print("   - Usuario Editor: editor / pass: editor123 (Crear y editar)")
+        print("   - Usuario Lector: lector / pass: lector123 (Solo lectura)")
 
 if __name__ == "__main__":
-    asyncio.run(seed())
+    asyncio.run(seed())
