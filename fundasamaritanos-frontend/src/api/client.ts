@@ -84,10 +84,12 @@ export class ApiError extends Error {
   detail: any;
 
   constructor(status: number, detail: any, message?: string) {
-    super(typeof detail === 'string' ? detail : message || `HTTP Error ${status}`);
+    const errorMsg = message || (typeof detail === 'string' ? detail : detail?.detail || (Array.isArray(detail) ? detail.map((d: any) => d.msg || JSON.stringify(d)).join(', ') : `HTTP Error ${status}`));
+    super(errorMsg);
     this.name = 'ApiError';
     this.status = status;
     this.detail = detail;
+    Object.setPrototypeOf(this, ApiError.prototype);
   }
 }
 
@@ -122,7 +124,7 @@ export const apiClient = {
     } = {}
   ): Promise<T> {
     const method = options.method || 'GET';
-    const baseUrl = (import.meta as any).env?.VITE_API_URL || '';
+    const baseUrl = (import.meta as any).env?.VITE_API_URL || 'http://127.0.0.1:8000';
 
     // Interceptor: Request
     const headers: Record<string, string> = {
@@ -140,8 +142,11 @@ export const apiClient = {
       headers['Content-Type'] = 'application/json';
     }
 
-    // Si existe VITE_API_URL, intentamos hacer la petición real
+    // Si existe baseUrl válida, intentamos hacer la petición real al backend
     if (baseUrl && !baseUrl.includes('mock')) {
+      const cleanEndpoint = endpoint.split('?')[0].replace(/\/$/, '');
+      const isAuthEndpoint = cleanEndpoint === '/login' || cleanEndpoint === 'login';
+
       try {
         let url = `${baseUrl}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
         if (options.params) {
@@ -177,8 +182,12 @@ export const apiClient = {
             errorDetail = await response.text();
           }
 
-          // HTTP 401: Token expirado o inválido -> Limpiar sesión y redirigir a /login
+          // HTTP 401: Token expirado o credenciales inválidas
           if (response.status === 401) {
+            if (isAuthEndpoint) {
+              const msg = typeof errorDetail === 'string' ? errorDetail : 'Usuario o contraseña incorrectos';
+              throw new ApiError(401, errorDetail, msg);
+            }
             clearAuthStorage();
             if (unauthorizedHandler) {
               unauthorizedHandler();
@@ -189,15 +198,16 @@ export const apiClient = {
             throw new ApiError(401, errorDetail, 'Sesión expirada');
           }
 
-          // HTTP 403: Permisos insuficientes -> Notificar alerta
+          // HTTP 403: Permisos insuficientes o usuario/personal inactivo
           if (response.status === 403) {
-            if (notificationHandler) {
-              notificationHandler('warning', 'Acceso denegado: No tienes permisos para realizar esta acción');
+            const msg = typeof errorDetail === 'string' ? errorDetail : 'Acceso denegado: Permisos insuficientes o usuario no activo';
+            if (!isAuthEndpoint && notificationHandler) {
+              notificationHandler('warning', msg);
             }
-            throw new ApiError(403, errorDetail, 'Acceso denegado: No tienes permisos para realizar esta acción');
+            throw new ApiError(403, errorDetail, msg);
           }
 
-          // HTTP 400: Error de regla de negocio -> Notificar directo
+          // HTTP 400: Error de regla de negocio
           if (response.status === 400) {
             const msg = typeof errorDetail === 'string' ? errorDetail : JSON.stringify(errorDetail);
             if (notificationHandler) {
@@ -208,16 +218,34 @@ export const apiClient = {
 
           // HTTP 422: Validación de formularios
           if (response.status === 422) {
-            throw new ApiError(422, errorDetail, 'Error de validación de campos');
+            const msg = typeof errorDetail === 'string' 
+              ? errorDetail 
+              : Array.isArray(errorDetail)
+              ? errorDetail.map((d: any) => d.msg || `${d.loc?.join('.')}: ${d.msg}`).join(', ')
+              : 'Error de validación de campos';
+            throw new ApiError(422, errorDetail, msg);
           }
 
-          throw new ApiError(response.status, errorDetail);
+          const fallbackMsg = typeof errorDetail === 'string' ? errorDetail : `Error HTTP ${response.status}`;
+          throw new ApiError(response.status, errorDetail, fallbackMsg);
         }
 
         return (await response.json()) as T;
       } catch (err: any) {
-        // If it's already an ApiError, rethrow
-        if (err instanceof ApiError) throw err;
+        // Si ya es un ApiError con respuesta del servidor, relanzar directamente
+        if (err instanceof ApiError || err?.name === 'ApiError' || err?.status !== undefined) {
+          throw err;
+        }
+
+        // Si falló la conexión con endpoints críticos de auth
+        if (isAuthEndpoint || cleanEndpoint === '/me' || cleanEndpoint === 'me') {
+          console.error('Error de conexión con el backend:', err);
+          throw new ApiError(
+            0,
+            err?.message || 'Error de conexión',
+            `No se pudo conectar con el servidor backend en ${baseUrl}. Asegúrate de que FastAPI esté ejecutándose.`
+          );
+        }
         console.warn('Fallo al conectar con servidor remoto, usando mock adapter:', err);
       }
     }
@@ -244,26 +272,33 @@ async function handleMockRequest<T>(
 
   // 1. POST /login (application/x-www-form-urlencoded)
   if (cleanEndpoint === '/login' && method === 'POST') {
-    const username = body?.username || '';
+    const username = (body?.username || '').trim();
     const password = body?.password || '';
 
-    if (!username.trim()) {
-      throw new ApiError(400, 'El campo "username" es requerido.');
+    if (!username) {
+      throw new ApiError(400, 'El usuario es requerido.');
+    }
+    if (!password) {
+      throw new ApiError(400, 'La contraseña es requerida.');
     }
 
-    // Rol por defecto o deducido
-    let rol: 'Administrador' | 'Editor' | 'Lector' = 'Administrador';
-    if (username.toLowerCase().includes('editor') || username.toLowerCase().includes('social')) {
-      rol = 'Editor';
-    } else if (username.toLowerCase().includes('lector') || username.toLowerCase().includes('consulta')) {
-      rol = 'Lector';
+    // Validación estricta de credenciales
+    const validUsers: Record<string, { pass: string; rol: 'Administrador' | 'Editor' | 'Lector' }> = {
+      admin: { pass: 'admin123', rol: 'Administrador' },
+      editor: { pass: 'editor123', rol: 'Editor' },
+      lector: { pass: 'lector123', rol: 'Lector' }
+    };
+
+    const found = validUsers[username.toLowerCase()];
+    if (!found || found.pass !== password) {
+      throw new ApiError(401, 'Usuario o contraseña incorrectos', 'Usuario o contraseña incorrectos');
     }
 
-    const token = `funda_jwt_mock_${Date.now()}_${rol.toLowerCase()}`;
+    const token = `funda_jwt_mock_${Date.now()}_${found.rol.toLowerCase()}`;
     return {
       access_token: token,
       token_type: 'bearer',
-      rol
+      rol: found.rol
     } as unknown as T;
   }
 

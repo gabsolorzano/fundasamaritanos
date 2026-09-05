@@ -22,16 +22,10 @@ app = FastAPI(
     swagger_ui_oauth2_redirect_url="/docs/oauth2-redirect"
 )
 
-# Configuración de CORS para permitir conexiones desde el Frontend (React, Vite, etc.)
+# Configuración de CORS para permitir conexiones desde el Frontend (React, Vite, Next.js, etc.)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-    ],
-    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$",
+    allow_origins=["*"],  # En producción se puede restringir a los dominios del frontend
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

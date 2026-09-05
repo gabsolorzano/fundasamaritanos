@@ -74,22 +74,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = async (username: string, password: string) => {
-    setIsLoading(true);
-    try {
-      // 1. POST /login (application/x-www-form-urlencoded)
-      const loginResp = await authApi.login(username, password);
-      localStorage.setItem(TOKEN_STORAGE_KEY, loginResp.access_token);
-      localStorage.setItem(ROLE_STORAGE_KEY, loginResp.rol);
-      setToken(loginResp.access_token);
-      setRole(loginResp.rol);
+    // 1. POST /login (application/x-www-form-urlencoded)
+    const loginResp = await authApi.login(username, password);
+    localStorage.setItem(TOKEN_STORAGE_KEY, loginResp.access_token);
+    localStorage.setItem(ROLE_STORAGE_KEY, loginResp.rol);
+    setToken(loginResp.access_token);
+    setRole(loginResp.rol);
 
-      // 2. GET /me (Authorization: Bearer <token>)
-      const meResp = await authApi.getMe();
-      setUser(meResp);
-      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(meResp));
-    } finally {
-      setIsLoading(false);
-    }
+    // 2. GET /me (Authorization: Bearer <token>)
+    const meResp = await authApi.getMe();
+    setUser(meResp);
+    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(meResp));
   };
 
   const logout = () => {
@@ -107,13 +102,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(true);
     try {
       let username = 'admin';
-      if (targetRole === 'Editor') username = 'editor.social';
-      if (targetRole === 'Lector') username = 'lector.consulta';
+      let password = 'admin123';
+      if (targetRole === 'Editor') {
+        username = 'editor';
+        password = 'editor123';
+      } else if (targetRole === 'Lector') {
+        username = 'lector';
+        password = 'lector123';
+      }
 
-      localStorage.setItem(ROLE_STORAGE_KEY, targetRole);
-      setRole(targetRole);
-
-      await login(username, 'password123');
+      await login(username, password);
     } finally {
       setIsLoading(false);
     }

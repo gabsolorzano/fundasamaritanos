@@ -44,7 +44,8 @@ async def login(
         )
 
     #Verificar que el personal esté activo
-    if not user.personal or not user.personal.activo or user.personal.estado.strip().lower() != "activo":
+    #user.personal es un objeto Personal cargado, no genera nueva consulta
+    if not user.personal.activo or user.personal.estado != "Activo":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Usuario inactivo o personal no activo"
