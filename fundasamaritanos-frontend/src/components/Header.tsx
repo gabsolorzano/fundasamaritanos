@@ -19,19 +19,14 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenMobileMenu,
   beneficiariaName
 }) => {
-  const { user: authUser, role, switchDemoRole } = useAuth();
-  const [showNotifications, setShowNotifications] = useState(false);
+  const { role, user: authUser } = useAuth();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
-  const notifRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
-  // Close menus when clicking outside
+  // Close user menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
-        setShowNotifications(false);
-      }
       if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
         setShowUserMenu(false);
       }
@@ -45,30 +40,6 @@ export const Header: React.FC<HeaderProps> = ({
     : 'Admin Sistema';
   const displayCargo = authUser?.personal?.cargo || 'Coordinador General';
   const currentRole: AppRole = (role || authUser?.rol || 'Administrador') as AppRole;
-
-  const notifications = [
-    {
-      id: 1,
-      title: 'Próximo Cumpleaños',
-      desc: 'Valeria Sofía Martínez cumple 13 años hoy.',
-      time: 'Hace 15 min',
-      unread: true
-    },
-    {
-      id: 2,
-      title: 'Alerta de Expediente',
-      desc: 'Isabella Méndez alcanza mayoría de edad en 2 meses.',
-      time: 'Hace 2 horas',
-      unread: true
-    },
-    {
-      id: 3,
-      title: 'Visita Domiciliaria',
-      desc: 'Lic. Elena Morales completó el informe socioeconómico.',
-      time: 'Ayer',
-      unread: false
-    }
-  ];
 
   const getRoleBadge = (r: AppRole) => {
     switch (r) {
@@ -98,51 +69,47 @@ export const Header: React.FC<HeaderProps> = ({
   const getBreadcrumbs = () => {
     switch (currentView) {
       case 'dashboard':
-        return (
-          <div className="flex items-center gap-2 text-slate-800 font-semibold text-lg font-display">
-            <span>Panel Principal</span>
-          </div>
-        );
+        return null;
       case 'beneficiarias':
         return (
-          <div className="flex items-center gap-2 text-slate-800 font-semibold text-lg font-display">
-            <span>Beneficiarias</span>
-          </div>
+          <span className="text-sm font-semibold text-slate-700">
+            Beneficiarias
+          </span>
         );
       case 'nuevo-expediente':
         return (
-          <div className="flex items-center gap-2 text-sm text-slate-600 font-medium font-display">
+          <div className="flex items-center gap-2 text-sm text-slate-600 font-medium">
             <button 
               onClick={() => onNavigate('beneficiarias')} 
               className="text-[#00256F] hover:underline cursor-pointer"
             >
               Beneficiarias
             </button>
-            <span className="text-slate-400">/</span>
-            <span className="text-slate-800 font-semibold text-base">Nuevo Expediente</span>
+            <span className="text-slate-300">/</span>
+            <span className="text-slate-800 font-semibold">Nuevo Expediente</span>
           </div>
         );
       case 'ficha-beneficiaria':
         return (
-          <div className="flex items-center gap-2 text-sm text-slate-600 font-medium font-display">
+          <div className="flex items-center gap-2 text-sm text-slate-600 font-medium">
             <button 
               onClick={() => onNavigate('beneficiarias')} 
               className="text-[#00256F] hover:underline cursor-pointer"
             >
               Beneficiarias
             </button>
-            <span className="text-slate-400">/</span>
-            <span className="text-slate-800 font-semibold text-base truncate max-w-[240px] sm:max-w-md">
+            <span className="text-slate-300">/</span>
+            <span className="text-slate-800 font-semibold truncate max-w-[200px] sm:max-w-xs">
               Ficha de {beneficiariaName || 'Beneficiaria'}
             </span>
           </div>
         );
       case 'personal':
         return (
-          <div className="flex items-center gap-2 text-slate-800 font-semibold text-lg font-display">
+          <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
             <span>Gestión de Personal</span>
             {currentRole !== 'Administrador' && (
-              <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium">
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium">
                 Solo Lectura
               </span>
             )}
@@ -150,28 +117,36 @@ export const Header: React.FC<HeaderProps> = ({
         );
       case 'configuracion':
         return (
-          <div className="flex items-center gap-2 text-slate-800 font-semibold text-lg font-display">
-            <span>Configuración del Sistema</span>
-          </div>
+          <span className="text-sm font-semibold text-slate-700">
+            Configuración del Sistema
+          </span>
         );
       default:
-        return <span>Fundasamaritanos</span>;
+        return null;
     }
   };
 
   return (
     <header className="h-[72px] bg-white border-b border-slate-200 px-4 sm:px-8 flex items-center justify-between sticky top-0 z-30 shadow-xs">
-      {/* Left side: Mobile menu toggle + Breadcrumb */}
+      {/* Left side: Mobile menu toggle + Header Title / Breadcrumb */}
       <div className="flex items-center gap-3">
         <button
           onClick={onOpenMobileMenu}
-          className="lg:hidden p-2 text-slate-600 hover:bg-slate-100 rounded-lg focus:outline-none"
+          className="lg:hidden p-2 text-slate-600 hover:bg-slate-100 rounded-lg focus:outline-none cursor-pointer"
           aria-label="Abrir menú"
         >
           <span className="material-symbols-outlined text-[24px]">menu</span>
         </button>
-        <div className="select-none">
-          {getBreadcrumbs()}
+        <div className="select-none flex items-center gap-2.5 sm:gap-3">
+          <span className="text-lg sm:text-xl font-bold text-[#00256F] font-display tracking-tight">
+            Fundasamaritanos
+          </span>
+          {getBreadcrumbs() && (
+            <>
+              <span className="text-slate-300 font-light">/</span>
+              {getBreadcrumbs()}
+            </>
+          )}
         </div>
       </div>
 
@@ -194,58 +169,6 @@ export const Header: React.FC<HeaderProps> = ({
         >
           <span className="material-symbols-outlined text-[22px]">help_outline</span>
         </button>
-
-        {/* Notifications */}
-        <div className="relative" ref={notifRef}>
-          <button
-            onClick={() => setShowNotifications(!showNotifications)}
-            className="w-10 h-10 relative flex items-center justify-center rounded-full text-slate-500 hover:text-[#00256F] hover:bg-slate-100 transition cursor-pointer"
-            title="Notificaciones"
-            aria-label="Notificaciones"
-          >
-            <span className="material-symbols-outlined text-[22px]">notifications</span>
-            <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-rose-500 rounded-full ring-2 ring-white" />
-          </button>
-
-          {/* Notifications Dropdown */}
-          {showNotifications && (
-            <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-xl shadow-xl border border-slate-200 py-3 z-50 animate-in fade-in zoom-in-95">
-              <div className="px-4 py-2 border-b border-slate-100 flex items-center justify-between">
-                <span className="font-semibold text-sm text-slate-800 font-display">Alertas de Expedientes</span>
-                <span className="text-[11px] font-semibold bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full">
-                  2 pendientes
-                </span>
-              </div>
-              <div className="max-h-80 overflow-y-auto divide-y divide-slate-50">
-                {notifications.map((item) => (
-                  <div 
-                    key={item.id} 
-                    className={`p-3.5 hover:bg-slate-50 transition cursor-pointer flex gap-3 ${item.unread ? 'bg-blue-50/40' : ''}`}
-                  >
-                    <div className="w-8 h-8 rounded-full bg-blue-100 text-[#00256F] flex items-center justify-center shrink-0 mt-0.5">
-                      <span className="material-symbols-outlined text-[18px]">info</span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <p className="text-xs font-semibold text-slate-900 truncate">{item.title}</p>
-                        <span className="text-[10px] text-slate-400">{item.time}</span>
-                      </div>
-                      <p className="text-xs text-slate-600 mt-0.5 leading-relaxed">{item.desc}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="px-4 pt-2 border-t border-slate-100 text-center">
-                <button 
-                  onClick={() => setShowNotifications(false)}
-                  className="text-xs font-semibold text-[#00256F] hover:underline cursor-pointer"
-                >
-                  Marcar todas como atendidas
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
 
         {/* User Pill (AuthContext) */}
         <div className="relative pl-1 sm:pl-2 border-l border-slate-200" ref={userMenuRef}>
@@ -279,54 +202,6 @@ export const Header: React.FC<HeaderProps> = ({
                   <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded border ${roleBadge.classes}`}>
                     Rol: {currentRole}
                   </span>
-                </div>
-              </div>
-
-              {/* Demo Role Switcher for reviewers */}
-              <div className="p-2 border-b border-slate-100 bg-slate-50/70">
-                <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 px-2">
-                  Cambiar Rol de Sesión (RBAC)
-                </span>
-                <div className="grid grid-cols-3 gap-1 px-1">
-                  <button
-                    onClick={() => {
-                      switchDemoRole('Administrador');
-                      setShowUserMenu(false);
-                    }}
-                    className={`px-1.5 py-1 text-[10px] font-semibold rounded cursor-pointer ${
-                      currentRole === 'Administrador'
-                        ? 'bg-[#00256F] text-white'
-                        : 'bg-white text-slate-700 hover:bg-slate-200 border border-slate-200'
-                    }`}
-                  >
-                    Admin
-                  </button>
-                  <button
-                    onClick={() => {
-                      switchDemoRole('Editor');
-                      setShowUserMenu(false);
-                    }}
-                    className={`px-1.5 py-1 text-[10px] font-semibold rounded cursor-pointer ${
-                      currentRole === 'Editor'
-                        ? 'bg-emerald-700 text-white'
-                        : 'bg-white text-slate-700 hover:bg-slate-200 border border-slate-200'
-                    }`}
-                  >
-                    Editor
-                  </button>
-                  <button
-                    onClick={() => {
-                      switchDemoRole('Lector');
-                      setShowUserMenu(false);
-                    }}
-                    className={`px-1.5 py-1 text-[10px] font-semibold rounded cursor-pointer ${
-                      currentRole === 'Lector'
-                        ? 'bg-purple-700 text-white'
-                        : 'bg-white text-slate-700 hover:bg-slate-200 border border-slate-200'
-                    }`}
-                  >
-                    Lector
-                  </button>
                 </div>
               </div>
 
@@ -370,8 +245,8 @@ export const Header: React.FC<HeaderProps> = ({
                   <span className="material-symbols-outlined text-[20px]">menu_book</span>
                 </div>
                 <div>
-                  <h3 className="font-bold text-slate-900 font-display">Especificaciones API Fundasamaritanos</h3>
-                  <p className="text-xs text-slate-500">Arquitectura y Roles del Sistema</p>
+                  <h3 className="font-bold text-slate-900 font-display">Roles y Permisos del Sistema</h3>
+                  <p className="text-xs text-slate-500">Control de Acceso Institucional (RBAC)</p>
                 </div>
               </div>
               <button 
@@ -383,20 +258,28 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
 
             <div className="py-4 space-y-3.5 text-xs text-slate-600">
-              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
-                <p className="font-bold text-[#00256F] mb-1">Control de Acceso Basado en Roles (RBAC):</p>
-                <ul className="space-y-1 list-disc list-inside">
-                  <li><strong>🛡️ Administrador:</strong> Acceso total, gestión de personal y usuarios, botones de eliminación habilitados.</li>
-                  <li><strong>✏️ Editor:</strong> Creación y edición de expedientes y beneficiarias. Personal en solo lectura. Eliminación deshabilitada.</li>
-                  <li><strong>👁️ Lector:</strong> Consulta general. Todos los botones de creación, edición y eliminación ocultos.</li>
+              <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200">
+                <p className="font-bold text-[#00256F] mb-2 text-sm">Niveles de Acceso y Funcionalidades:</p>
+                <ul className="space-y-2">
+                  <li className="flex items-start gap-2">
+                    <span className="text-base">🛡️</span>
+                    <div>
+                      <strong className="text-slate-800">Administrador:</strong> Acceso total al sistema, gestión completa de personal y asignación de usuarios institucionales, creación, edición y eliminación de beneficiarias y expedientes.
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-base">✏️</span>
+                    <div>
+                      <strong className="text-slate-800">Editor:</strong> Creación y edición integral de beneficiarias, expedientes y representantes. Módulo de personal en modo solo lectura. Eliminaciones deshabilitadas.
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-base">👁️</span>
+                    <div>
+                      <strong className="text-slate-800">Lector:</strong> Consulta y visualización general de información. Botones y formularios de creación, edición o eliminación deshabilitados.
+                    </div>
+                  </li>
                 </ul>
-              </div>
-
-              <div className="p-3 bg-blue-50/60 rounded-xl border border-blue-200 text-slate-700">
-                <p className="font-bold text-[#00256F] mb-1">Endpoints Integrados:</p>
-                <p className="font-mono text-[11px] text-slate-600">
-                  POST /login · GET /me · GET /dashboard · GET /roles · GET /personal · POST /personal · POST /personal/{'{id}'}/usuario
-                </p>
               </div>
             </div>
 

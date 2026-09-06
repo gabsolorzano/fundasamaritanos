@@ -64,37 +64,59 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const cumpleanios = dashboardData?.cumpleanios_proximos || [];
   const calidad = dashboardData?.calidad_de_datos;
 
-  // Total for donut
-  const rangos: Record<string, number> = (distribucion?.por_rango_etario as Record<string, number>) || {
-    '0-5': 4,
-    '6-10': 12,
-    '11-14': 14,
-    '15-17': 6,
-    '18+': 2
+  // Normalizar rangos etarios desde backend (array [{rango, cantidad}] o record)
+  const rangos: Record<string, number> = {
+    '0-5': 0,
+    '6-10': 0,
+    '11-14': 0,
+    '15-17': 0,
+    '18+': 0
   };
+
+  if (Array.isArray(distribucion?.por_rango_etario)) {
+    distribucion.por_rango_etario.forEach(item => {
+      if (item.rango && item.cantidad !== undefined) {
+        rangos[item.rango] = item.cantidad;
+      }
+    });
+  } else if (distribucion?.por_rango_etario && typeof distribucion.por_rango_etario === 'object') {
+    Object.assign(rangos, distribucion.por_rango_etario);
+  }
+
   const totalRango: number = (Object.values(rangos) as number[]).reduce((a: number, b: number) => a + Number(b), 0) || 1;
 
-  const handleExportCSV = () => {
-    const headers = ['Codigo', 'Nombres', 'Apellidos', 'Edad', 'Grado', 'Estado', 'Representante'];
-    const rows = beneficiarias.map(b => [
-      b.expCode,
-      `"${b.nombres}"`,
-      `"${b.apellidos}"`,
-      b.edad,
-      `"${b.grado}"`,
-      b.estado,
-      `"${b.representantePrincipal}"`
-    ]);
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `Expedientes_Fundasamaritanos_${new Date().toISOString().slice(0, 10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    showToast('Lista de expedientes exportada exitosamente en formato CSV.');
-  };
+  // Normalizar listas de alertas
+  const sinRepList = alertas?.sin_representante || [];
+  const proximasList = alertas?.proximas_a_egresar || [];
+  const egresadasList = alertas?.egresadas_sin_fecha_egreso || alertas?.egresadas_sin_fecha || [];
+  const sinGradoList = alertas?.sin_grado_escolar || [];
+
+  const countSinRep = alertas?.total_sin_representante ?? sinRepList.length;
+  const countProximas = alertas?.total_proximas_a_egresar ?? proximasList.length;
+  const countEgresadas = alertas?.total_egresadas_sin_fecha ?? egresadasList.length;
+  const countSinGrado = alertas?.total_sin_grado ?? sinGradoList.length;
+
+  // Instituciones normalizadas
+  const institucionesList = distribucion?.por_institucion || [];
+  const maxInstCount = Math.max(...institucionesList.map(i => i.cantidad), 8);
+
+  // Evolución mensual normalizada
+  const evolucionList = dashboardData?.evolucion_mensual || distribucion?.evolucion_mensual || [];
+  const maxEvolucionScale = Math.max(...evolucionList.flatMap(e => [e.ingresos, e.egresos]), 10);
+
+  // Calidad de datos calculada
+  const totalActivas = metricas.beneficiarias_activas || 1;
+  const sinCedulaCount = calidad?.beneficiarias_sin_cedula ?? 0;
+  const sinCedulaPct = calidad?.sin_cedula_pct ?? Math.min(100, Math.round((sinCedulaCount / totalActivas) * 100));
+
+  const totalExpedientes = metricas.total_expedientes || 1;
+  const sinFechaRepCount = calidad?.representantes_sin_fecha_nacimiento ?? 0;
+  const sinFechaRepPct = calidad?.sin_fecha_nacimiento_rep_pct ?? Math.min(100, Math.round((sinFechaRepCount / totalExpedientes) * 100));
+
+  const dirIncompletasCount = calidad?.direcciones_incompletas ?? 0;
+  const dirIncompletasPct = calidad?.direcciones_incompletas_pct ?? Math.min(100, Math.round((dirIncompletasCount / totalExpedientes) * 100));
+
+  const puntajeSalud = calidad?.puntaje_general_pct ?? Math.max(0, 100 - Math.round((sinCedulaPct + sinFechaRepPct + dirIncompletasPct) / 3));
 
   return (
     <div className="space-y-6 pb-12">
@@ -109,11 +131,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       {/* Greeting Banner */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold bg-blue-50 text-[#00256F] border border-blue-200">
-              GET /dashboard
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
             </span>
-            <span className="text-xs text-slate-400">· Datos en tiempo real</span>
+            <span className="text-xs font-semibold text-slate-500">Datos en tiempo real · Fundación Fundasamaritanos</span>
           </div>
           <h2 className="text-xl sm:text-2xl font-bold text-[#00256F] font-display">
             Resumen General de Atención Integral
@@ -124,15 +147,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
 
         <div className="flex items-center gap-2.5 self-start md:self-auto">
-          <button
-            onClick={handleExportCSV}
-            className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition flex items-center gap-2 cursor-pointer border border-slate-200"
-            title="Descargar datos en CSV"
-          >
-            <span className="material-symbols-outlined text-[18px]">download</span>
-            <span>Exportar CSV</span>
-          </button>
-
           {/* RBAC: Hide "Nuevo Expediente" if Lector */}
           {!isLector && (
             <button
@@ -146,7 +160,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
       </div>
 
-      {/* 4 Bento Metric Cards (Mapeo de data.metricas) */}
+      {/* 4 Bento Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* KPI 1: Beneficiarias Activas */}
         <div 
@@ -380,34 +394,34 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <h3 className="font-bold text-slate-900 font-display text-base">
                 Por Institución Educativa
               </h3>
-              <span className="text-xs text-slate-400 font-medium">Top 5 colegios</span>
+              <span className="text-xs text-slate-400 font-medium">Top 5 centros</span>
             </div>
             <p className="text-xs text-slate-500 mb-4">
-              Colegios y escuelas con mayor cantidad de niñas asignadas
+              Colegios y escuelas con mayor cantidad de beneficiarias
             </p>
 
             <div className="space-y-3.5">
-              {(distribucion?.por_institucion || [
-                { institucion: 'U.E.B. República de Venezuela', cantidad: 8 },
-                { institucion: 'Liceo Mariano Picón Salas', cantidad: 6 },
-                { institucion: 'Colegio San Antonio de Padua', cantidad: 5 },
-                { institucion: 'Escuela Básica Petare', cantidad: 4 },
-                { institucion: 'Liceo Eulalia Buroz', cantidad: 3 }
+              {(institucionesList.length > 0 ? institucionesList : [
+                { nombre: 'U.E.B. República de Venezuela', cantidad: 8 },
+                { nombre: 'Liceo Mariano Picón Salas', cantidad: 6 },
+                { nombre: 'Colegio San Antonio de Padua', cantidad: 5 },
+                { nombre: 'Escuela Básica Petare', cantidad: 4 },
+                { nombre: 'Liceo Eulalia Buroz', cantidad: 3 }
               ]).map((inst, index) => {
-                const maxVal = 8;
-                const pct = Math.round((inst.cantidad / maxVal) * 100);
+                const nombreInst = (inst as any).nombre || (inst as any).institucion || 'Institución';
+                const pct = Math.round((inst.cantidad / maxInstCount) * 100);
                 return (
                   <div key={index} className="space-y-1">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="font-medium text-slate-700 truncate max-w-[200px]" title={inst.institucion}>
-                        {inst.institucion}
+                      <span className="font-medium text-slate-700 truncate max-w-[200px]" title={nombreInst}>
+                        {nombreInst}
                       </span>
                       <span className="font-bold text-[#00256F]">{inst.cantidad} niñas</span>
                     </div>
                     <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
                       <div
                         className="bg-[#00256F] h-full rounded-full transition-all duration-500"
-                        style={{ width: `${pct}%` }}
+                        style={{ width: `${Math.max(5, pct)}%` }}
                       />
                     </div>
                   </div>
@@ -451,18 +465,18 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
             {/* Monthly Bar/Trend Visualizer */}
             <div className="h-44 flex items-end justify-between gap-2 pt-6 pb-2 px-2">
-              {(distribucion?.evolucion_mensual || [
-                { periodo: '2025-01', ingresos: 5, egresos: 1 },
-                { periodo: '2025-02', ingresos: 7, egresos: 2 },
-                { periodo: '2025-03', ingresos: 6, egresos: 1 },
-                { periodo: '2025-04', ingresos: 8, egresos: 3 },
-                { periodo: '2025-05', ingresos: 10, egresos: 2 },
-                { periodo: '2025-06', ingresos: 4, egresos: 0 }
+              {(evolucionList.length > 0 ? evolucionList : [
+                { mes: '2025-01', ingresos: 5, egresos: 1 },
+                { mes: '2025-02', ingresos: 7, egresos: 2 },
+                { mes: '2025-03', ingresos: 6, egresos: 1 },
+                { mes: '2025-04', ingresos: 8, egresos: 3 },
+                { mes: '2025-05', ingresos: 10, egresos: 2 },
+                { mes: '2025-06', ingresos: 4, egresos: 0 }
               ]).map((item, idx) => {
-                const maxScale = 12;
-                const hIngresos = Math.min(100, Math.round((item.ingresos / maxScale) * 100));
-                const hEgresos = Math.min(100, Math.round((item.egresos / maxScale) * 100));
-                const monthLabel = item.periodo.split('-')[1];
+                const mesStr = (item as any).mes || (item as any).periodo || '';
+                const hIngresos = Math.min(100, Math.round((item.ingresos / maxEvolucionScale) * 100));
+                const hEgresos = Math.min(100, Math.round((item.egresos / maxEvolucionScale) * 100));
+                const monthLabel = mesStr.includes('-') ? mesStr.split('-')[1] : mesStr;
 
                 return (
                   <div key={idx} className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end group">
@@ -471,7 +485,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       <div
                         className="w-3.5 bg-[#00256F] rounded-t-sm transition-all hover:bg-blue-800 relative cursor-pointer"
                         style={{ height: `${Math.max(10, hIngresos)}%` }}
-                        title={`${item.periodo}: ${item.ingresos} ingresos`}
+                        title={`${mesStr}: ${item.ingresos} ingresos`}
                       >
                         <span className="opacity-0 group-hover:opacity-100 transition absolute -top-5 left-1/2 -translate-x-1/2 text-[9px] font-bold text-[#00256F] bg-blue-50 px-1 rounded">
                           {item.ingresos}
@@ -481,7 +495,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       <div
                         className="w-3.5 bg-rose-400 rounded-t-sm transition-all hover:bg-rose-600 relative cursor-pointer"
                         style={{ height: `${Math.max(6, hEgresos)}%` }}
-                        title={`${item.periodo}: ${item.egresos} egresos`}
+                        title={`${mesStr}: ${item.egresos} egresos`}
                       >
                         <span className="opacity-0 group-hover:opacity-100 transition absolute -top-5 left-1/2 -translate-x-1/2 text-[9px] font-bold text-rose-600 bg-rose-50 px-1 rounded">
                           {item.egresos}
@@ -504,9 +518,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
       </div>
 
-      {/* Row: Panel de Alertas & Acciones (Pestañas con badges) + Cumpleaños + Calidad de Datos */}
+      {/* Row: Panel de Alertas & Acciones (Pestañas visuales en cuadrícula) + Cumpleaños + Calidad de Datos */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Panel de Alertas y Acciones (Tabs con Badges Numéricos) */}
+        {/* Panel de Alertas y Acciones */}
         <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5">
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -514,159 +528,246 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 Panel de Alertas y Acciones
               </h3>
               <p className="text-xs text-slate-500 mt-0.5">
-                Puntos de atención técnica identificados automáticamente por la API
+                Puntos de atención técnica identificados para seguimiento prioritario
               </p>
             </div>
-            <span className="text-[11px] font-mono text-slate-400">data.alertas</span>
           </div>
 
-          {/* Navigation Tabs with Badges */}
-          <div className="flex items-center gap-2 border-b border-slate-100 pb-3 overflow-x-auto">
+          {/* Navigation Tabs - Visual 4-Card Selector (Responsive, No Scrollbars) */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-4">
+            {/* Tab 1: Sin Representante */}
             <button
+              type="button"
               onClick={() => setActiveAlertTab('sin_rep')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition cursor-pointer whitespace-nowrap ${
+              className={`p-3 rounded-xl text-left border transition-all cursor-pointer flex flex-col justify-between ${
                 activeAlertTab === 'sin_rep'
-                  ? 'bg-rose-50 text-rose-700 border border-rose-200 shadow-xs'
-                  : 'text-slate-600 hover:bg-slate-50'
+                  ? 'bg-rose-50/90 border-rose-300 ring-2 ring-rose-500/20 shadow-xs'
+                  : 'bg-slate-50/70 hover:bg-slate-100/80 border-slate-200/80'
               }`}
             >
-              <span>🔴 Sin Tutor / Rep.</span>
-              <span className="w-5 h-5 rounded-full bg-rose-600 text-white text-[10px] flex items-center justify-center font-bold">
-                {alertas?.sin_representante?.length || 1}
-              </span>
+              <div className="flex items-center justify-between">
+                <span className="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+                <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                  activeAlertTab === 'sin_rep' ? 'bg-rose-600 text-white' : 'bg-rose-100 text-rose-700'
+                }`}>
+                  {countSinRep}
+                </span>
+              </div>
+              <div className="mt-2">
+                <p className="text-xs font-bold text-slate-800 leading-snug">Sin Tutor / Rep.</p>
+                <p className="text-[10px] text-slate-500 mt-0.5">Falta tutor legal</p>
+              </div>
             </button>
 
+            {/* Tab 2: Próximas a Egresar */}
             <button
+              type="button"
               onClick={() => setActiveAlertTab('proximas')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition cursor-pointer whitespace-nowrap ${
+              className={`p-3 rounded-xl text-left border transition-all cursor-pointer flex flex-col justify-between ${
                 activeAlertTab === 'proximas'
-                  ? 'bg-amber-50 text-amber-800 border border-amber-200 shadow-xs'
-                  : 'text-slate-600 hover:bg-slate-50'
+                  ? 'bg-amber-50/90 border-amber-300 ring-2 ring-amber-500/20 shadow-xs'
+                  : 'bg-slate-50/70 hover:bg-slate-100/80 border-slate-200/80'
               }`}
             >
-              <span>🟡 Próximas a Egresar</span>
-              <span className="w-5 h-5 rounded-full bg-amber-500 text-white text-[10px] flex items-center justify-center font-bold">
-                {alertas?.proximas_a_egresar?.length || 2}
-              </span>
+              <div className="flex items-center justify-between">
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                  activeAlertTab === 'proximas' ? 'bg-amber-500 text-white' : 'bg-amber-100 text-amber-800'
+                }`}>
+                  {countProximas}
+                </span>
+              </div>
+              <div className="mt-2">
+                <p className="text-xs font-bold text-slate-800 leading-snug">Próximas a Egresar</p>
+                <p className="text-[10px] text-slate-500 mt-0.5">17+ años</p>
+              </div>
             </button>
 
+            {/* Tab 3: Egresadas sin Fecha */}
             <button
+              type="button"
               onClick={() => setActiveAlertTab('egresadas')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition cursor-pointer whitespace-nowrap ${
+              className={`p-3 rounded-xl text-left border transition-all cursor-pointer flex flex-col justify-between ${
                 activeAlertTab === 'egresadas'
-                  ? 'bg-rose-50 text-rose-700 border border-rose-200 shadow-xs'
-                  : 'text-slate-600 hover:bg-slate-50'
+                  ? 'bg-rose-50/90 border-rose-300 ring-2 ring-rose-500/20 shadow-xs'
+                  : 'bg-slate-50/70 hover:bg-slate-100/80 border-slate-200/80'
               }`}
             >
-              <span>🔴 Egresadas sin Fecha</span>
-              <span className="w-5 h-5 rounded-full bg-rose-600 text-white text-[10px] flex items-center justify-center font-bold">
-                {alertas?.egresadas_sin_fecha?.length || 1}
-              </span>
+              <div className="flex items-center justify-between">
+                <span className="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+                <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                  activeAlertTab === 'egresadas' ? 'bg-rose-600 text-white' : 'bg-rose-100 text-rose-700'
+                }`}>
+                  {countEgresadas}
+                </span>
+              </div>
+              <div className="mt-2">
+                <p className="text-xs font-bold text-slate-800 leading-snug">Egresadas sin Fecha</p>
+                <p className="text-[10px] text-slate-500 mt-0.5">Falta fecha de egreso</p>
+              </div>
             </button>
 
+            {/* Tab 4: Sin Grado Escolar */}
             <button
+              type="button"
               onClick={() => setActiveAlertTab('sin_grado')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition cursor-pointer whitespace-nowrap ${
+              className={`p-3 rounded-xl text-left border transition-all cursor-pointer flex flex-col justify-between ${
                 activeAlertTab === 'sin_grado'
-                  ? 'bg-amber-50 text-amber-800 border border-amber-200 shadow-xs'
-                  : 'text-slate-600 hover:bg-slate-50'
+                  ? 'bg-amber-50/90 border-amber-300 ring-2 ring-amber-500/20 shadow-xs'
+                  : 'bg-slate-50/70 hover:bg-slate-100/80 border-slate-200/80'
               }`}
             >
-              <span>🟡 Sin Grado Escolar</span>
-              <span className="w-5 h-5 rounded-full bg-amber-500 text-white text-[10px] flex items-center justify-center font-bold">
-                {alertas?.sin_grado_escolar?.length || 1}
-              </span>
+              <div className="flex items-center justify-between">
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                  activeAlertTab === 'sin_grado' ? 'bg-amber-500 text-white' : 'bg-amber-100 text-amber-800'
+                }`}>
+                  {countSinGrado}
+                </span>
+              </div>
+              <div className="mt-2">
+                <p className="text-xs font-bold text-slate-800 leading-snug">Sin Grado Escolar</p>
+                <p className="text-[10px] text-slate-500 mt-0.5">Ficha escolar vacía</p>
+              </div>
             </button>
           </div>
 
           {/* Active Tab Content */}
-          <div className="mt-4 divide-y divide-slate-100">
+          <div className="mt-2">
             {activeAlertTab === 'sin_rep' && (
               <div className="space-y-2">
-                {(alertas?.sin_representante || []).map((item) => (
-                  <div key={item.id} className="p-3 bg-rose-50/50 rounded-xl border border-rose-100 flex items-center justify-between">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-xs text-rose-900">{item.nombres} {item.apellidos}</span>
-                        <span className="text-[10px] font-mono bg-white px-2 py-0.5 rounded border border-rose-200 text-rose-700">{item.expCode}</span>
-                      </div>
-                      <p className="text-xs text-rose-700 mt-0.5">{item.detalle || 'Activa en sistema pero sin tutor legal asociado'}</p>
-                    </div>
-                    <button 
-                      onClick={() => onNavigate('beneficiarias')}
-                      className="px-3 py-1.5 bg-white hover:bg-rose-100 text-rose-800 border border-rose-200 rounded-lg text-xs font-semibold transition cursor-pointer"
-                    >
-                      Asignar Tutor
-                    </button>
+                {sinRepList.length === 0 ? (
+                  <div className="py-8 text-center bg-slate-50/60 rounded-xl border border-dashed border-slate-200">
+                    <span className="material-symbols-outlined text-emerald-500 text-3xl">task_alt</span>
+                    <p className="text-xs font-semibold text-slate-700 mt-1">Sin alertas pendientes</p>
+                    <p className="text-[11px] text-slate-500">Todas las beneficiarias activas cuentan con tutor legal asignado.</p>
                   </div>
-                ))}
+                ) : (
+                  sinRepList.map((item) => {
+                    const id = (item as any).id || (item as any).id_beneficiaria || 0;
+                    const expCode = (item as any).expCode || `EXP-${String(id).padStart(4, '0')}`;
+                    return (
+                      <div key={id} className="p-3 bg-rose-50/50 rounded-xl border border-rose-100 flex items-center justify-between">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-xs text-rose-900">{item.nombres} {item.apellidos}</span>
+                            <span className="text-[10px] font-mono bg-white px-2 py-0.5 rounded border border-rose-200 text-rose-700">{expCode}</span>
+                          </div>
+                          <p className="text-xs text-rose-700 mt-0.5">{item.detalle || 'Activa en sistema pero sin tutor legal asociado'}</p>
+                        </div>
+                        <button 
+                          onClick={() => onNavigate('beneficiarias')}
+                          className="px-3 py-1.5 bg-white hover:bg-rose-100 text-rose-800 border border-rose-200 rounded-lg text-xs font-semibold transition cursor-pointer"
+                        >
+                          Asignar Tutor
+                        </button>
+                      </div>
+                    );
+                  })
+                )}
               </div>
             )}
 
             {activeAlertTab === 'proximas' && (
               <div className="space-y-2">
-                {(alertas?.proximas_a_egresar || []).map((item) => (
-                  <div key={item.id} className="p-3 bg-amber-50/50 rounded-xl border border-amber-100 flex items-center justify-between">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-xs text-amber-900">{item.nombres} {item.apellidos}</span>
-                        <span className="text-[10px] font-mono bg-white px-2 py-0.5 rounded border border-amber-200 text-amber-800">{item.expCode}</span>
-                        <span className="text-[10px] font-bold bg-amber-100 text-amber-900 px-2 py-0.5 rounded-full">{item.edad || 17} años</span>
-                      </div>
-                      <p className="text-xs text-amber-800 mt-0.5">{item.detalle || 'Supera o alcanza la mayoría de edad próximamente. Preparar plan de egreso autónomo.'}</p>
-                    </div>
-                    <button 
-                      onClick={() => onNavigate('beneficiarias')}
-                      className="px-3 py-1.5 bg-white hover:bg-amber-100 text-amber-900 border border-amber-200 rounded-lg text-xs font-semibold transition cursor-pointer"
-                    >
-                      Plan de Egreso
-                    </button>
+                {proximasList.length === 0 ? (
+                  <div className="py-8 text-center bg-slate-50/60 rounded-xl border border-dashed border-slate-200">
+                    <span className="material-symbols-outlined text-emerald-500 text-3xl">task_alt</span>
+                    <p className="text-xs font-semibold text-slate-700 mt-1">Sin alertas pendientes</p>
+                    <p className="text-[11px] text-slate-500">No hay beneficiarias próximas a alcanzar la mayoría de edad.</p>
                   </div>
-                ))}
+                ) : (
+                  proximasList.map((item) => {
+                    const id = (item as any).id || (item as any).id_beneficiaria || 0;
+                    const expCode = (item as any).expCode || `EXP-${String(id).padStart(4, '0')}`;
+                    return (
+                      <div key={id} className="p-3 bg-amber-50/50 rounded-xl border border-amber-100 flex items-center justify-between">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-xs text-amber-900">{item.nombres} {item.apellidos}</span>
+                            <span className="text-[10px] font-mono bg-white px-2 py-0.5 rounded border border-amber-200 text-amber-800">{expCode}</span>
+                            <span className="text-[10px] font-bold bg-amber-100 text-amber-900 px-2 py-0.5 rounded-full">{item.edad || 17} años</span>
+                          </div>
+                          <p className="text-xs text-amber-800 mt-0.5">{item.detalle || 'Supera o alcanza la mayoría de edad próximamente. Preparar plan de egreso autónomo.'}</p>
+                        </div>
+                        <button 
+                          onClick={() => onNavigate('beneficiarias')}
+                          className="px-3 py-1.5 bg-white hover:bg-amber-100 text-amber-900 border border-amber-200 rounded-lg text-xs font-semibold transition cursor-pointer"
+                        >
+                          Plan de Egreso
+                        </button>
+                      </div>
+                    );
+                  })
+                )}
               </div>
             )}
 
             {activeAlertTab === 'egresadas' && (
               <div className="space-y-2">
-                {(alertas?.egresadas_sin_fecha || []).map((item) => (
-                  <div key={item.id} className="p-3 bg-rose-50/50 rounded-xl border border-rose-100 flex items-center justify-between">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-xs text-rose-900">{item.nombres} {item.apellidos}</span>
-                        <span className="text-[10px] font-mono bg-white px-2 py-0.5 rounded border border-rose-200 text-rose-700">{item.expCode}</span>
-                      </div>
-                      <p className="text-xs text-rose-700 mt-0.5">Estado clasificado como Egresada pero falta completar el campo obligatorio <code>fecha_egreso</code>.</p>
-                    </div>
-                    <button 
-                      onClick={() => onNavigate('beneficiarias')}
-                      className="px-3 py-1.5 bg-white hover:bg-rose-100 text-rose-800 border border-rose-200 rounded-lg text-xs font-semibold transition cursor-pointer"
-                    >
-                      Completar Fecha
-                    </button>
+                {egresadasList.length === 0 ? (
+                  <div className="py-8 text-center bg-slate-50/60 rounded-xl border border-dashed border-slate-200">
+                    <span className="material-symbols-outlined text-emerald-500 text-3xl">task_alt</span>
+                    <p className="text-xs font-semibold text-slate-700 mt-1">Sin alertas pendientes</p>
+                    <p className="text-[11px] text-slate-500">Todas las beneficiarias egresadas cuentan con fecha de egreso registrada.</p>
                   </div>
-                ))}
+                ) : (
+                  egresadasList.map((item) => {
+                    const id = (item as any).id || (item as any).id_beneficiaria || 0;
+                    const expCode = (item as any).expCode || `EXP-${String(id).padStart(4, '0')}`;
+                    return (
+                      <div key={id} className="p-3 bg-rose-50/50 rounded-xl border border-rose-100 flex items-center justify-between">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-xs text-rose-900">{item.nombres} {item.apellidos}</span>
+                            <span className="text-[10px] font-mono bg-white px-2 py-0.5 rounded border border-rose-200 text-rose-700">{expCode}</span>
+                          </div>
+                          <p className="text-xs text-rose-700 mt-0.5">Estado clasificado como Egresada pero falta completar el campo obligatorio <code>fecha_egreso</code>.</p>
+                        </div>
+                        <button 
+                          onClick={() => onNavigate('beneficiarias')}
+                          className="px-3 py-1.5 bg-white hover:bg-rose-100 text-rose-800 border border-rose-200 rounded-lg text-xs font-semibold transition cursor-pointer"
+                        >
+                          Completar Fecha
+                        </button>
+                      </div>
+                    );
+                  })
+                )}
               </div>
             )}
 
             {activeAlertTab === 'sin_grado' && (
               <div className="space-y-2">
-                {(alertas?.sin_grado_escolar || []).map((item) => (
-                  <div key={item.id} className="p-3 bg-amber-50/50 rounded-xl border border-amber-100 flex items-center justify-between">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-xs text-amber-900">{item.nombres} {item.apellidos}</span>
-                        <span className="text-[10px] font-mono bg-white px-2 py-0.5 rounded border border-amber-200 text-amber-800">{item.expCode}</span>
-                      </div>
-                      <p className="text-xs text-amber-800 mt-0.5">Sin nivel escolar especificado en la ficha técnica.</p>
-                    </div>
-                    <button 
-                      onClick={() => onNavigate('beneficiarias')}
-                      className="px-3 py-1.5 bg-white hover:bg-amber-100 text-amber-900 border border-amber-200 rounded-lg text-xs font-semibold transition cursor-pointer"
-                    >
-                      Actualizar Grado
-                    </button>
+                {sinGradoList.length === 0 ? (
+                  <div className="py-8 text-center bg-slate-50/60 rounded-xl border border-dashed border-slate-200">
+                    <span className="material-symbols-outlined text-emerald-500 text-3xl">task_alt</span>
+                    <p className="text-xs font-semibold text-slate-700 mt-1">Sin alertas pendientes</p>
+                    <p className="text-[11px] text-slate-500">Todas las fichas tienen registrado el nivel y grado escolar.</p>
                   </div>
-                ))}
+                ) : (
+                  sinGradoList.map((item) => {
+                    const id = (item as any).id || (item as any).id_beneficiaria || 0;
+                    const expCode = (item as any).expCode || `EXP-${String(id).padStart(4, '0')}`;
+                    return (
+                      <div key={id} className="p-3 bg-amber-50/50 rounded-xl border border-amber-100 flex items-center justify-between">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-xs text-amber-900">{item.nombres} {item.apellidos}</span>
+                            <span className="text-[10px] font-mono bg-white px-2 py-0.5 rounded border border-amber-200 text-amber-800">{expCode}</span>
+                          </div>
+                          <p className="text-xs text-amber-800 mt-0.5">Sin nivel escolar especificado en la ficha técnica.</p>
+                        </div>
+                        <button 
+                          onClick={() => onNavigate('beneficiarias')}
+                          className="px-3 py-1.5 bg-white hover:bg-amber-100 text-amber-900 border border-amber-200 rounded-lg text-xs font-semibold transition cursor-pointer"
+                        >
+                          Actualizar Grado
+                        </button>
+                      </div>
+                    );
+                  })
+                )}
               </div>
             )}
           </div>
@@ -674,7 +775,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
         {/* Right Column: Cumpleaños Próximos + Salud de los Datos */}
         <div className="space-y-6">
-          {/* Widget de Cumpleaños (data.cumpleanios_proximos) */}
+          {/* Widget de Cumpleaños */}
           <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
@@ -689,25 +790,49 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
 
             <div className="space-y-2.5">
-              {cumpleanios.map((c) => (
-                <div key={c.id} className="p-2.5 bg-slate-50 hover:bg-rose-50/40 rounded-xl border border-slate-100 transition flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-bold text-slate-800">{c.nombre}</p>
-                    <p className="text-[11px] text-slate-500">{c.fecha} · Cumple {c.edad_cumplir} años</p>
-                  </div>
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                    c.dias_faltantes === 'Hoy' 
-                      ? 'bg-rose-600 text-white animate-pulse' 
-                      : 'bg-blue-100 text-[#00256F]'
-                  }`}>
-                    {c.dias_faltantes}
-                  </span>
+              {cumpleanios.length === 0 ? (
+                <div className="py-6 text-center bg-slate-50/60 rounded-xl border border-dashed border-slate-200">
+                  <span className="material-symbols-outlined text-slate-400 text-2xl">sentiment_satisfied</span>
+                  <p className="text-xs font-medium text-slate-500 mt-1">No hay cumpleaños en los próximos 7 días</p>
                 </div>
-              ))}
+              ) : (
+                cumpleanios.map((c) => {
+                  const id = (c as any).id || (c as any).id_beneficiaria || Math.random();
+                  const fullName = (c as any).nombres 
+                    ? `${(c as any).nombres} ${(c as any).apellidos || ''}`.trim() 
+                    : ((c as any).nombre || 'Beneficiaria');
+                  
+                  const diasFaltantes = (c as any).dias_para_cumpleanios !== undefined
+                    ? ((c as any).dias_para_cumpleanios === 0 ? 'Hoy' : (c as any).dias_para_cumpleanios === 1 ? 'Mañana' : `En ${(c as any).dias_para_cumpleanios} días`)
+                    : ((c as any).dias_faltantes || 'Pronto');
+                  
+                  const fechaStr = (c as any).fecha_nacimiento 
+                    ? new Date((c as any).fecha_nacimiento).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
+                    : ((c as any).fecha || '');
+                  
+                  const edadStr = (c as any).edad_cumplir ? ` · Cumple ${(c as any).edad_cumplir} años` : '';
+
+                  return (
+                    <div key={id} className="p-2.5 bg-slate-50 hover:bg-rose-50/40 rounded-xl border border-slate-100 transition flex items-center justify-between">
+                      <div>
+                        <p className="text-xs font-bold text-slate-800">{fullName}</p>
+                        <p className="text-[11px] text-slate-500">{fechaStr}{edadStr}</p>
+                      </div>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        diasFaltantes === 'Hoy' 
+                          ? 'bg-rose-600 text-white animate-pulse' 
+                          : 'bg-blue-100 text-[#00256F]'
+                      }`}>
+                        {diasFaltantes}
+                      </span>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
 
-          {/* Widget de Salud de los Datos (data.calidad_de_datos) */}
+          {/* Widget de Salud de los Datos */}
           <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
@@ -717,7 +842,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 </h3>
               </div>
               <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
-                {calidad?.puntaje_general_pct || 92}% Completitud
+                {puntajeSalud}% Completitud
               </span>
             </div>
 
@@ -726,12 +851,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <div>
                 <div className="flex justify-between text-slate-600 mb-1">
                   <span>Sin Cédula (Partida nac.)</span>
-                  <span className="font-bold text-slate-800">{calidad?.sin_cedula_pct || 12}%</span>
+                  <span className="font-bold text-slate-800">{sinCedulaCount} casos ({sinCedulaPct}%)</span>
                 </div>
                 <div className="w-full bg-slate-100 rounded-full h-1.5">
                   <div
-                    className="bg-amber-500 h-full rounded-full"
-                    style={{ width: `${calidad?.sin_cedula_pct || 12}%` }}
+                    className="bg-amber-500 h-full rounded-full transition-all duration-500"
+                    style={{ width: `${sinCedulaPct}%` }}
                   />
                 </div>
               </div>
@@ -740,12 +865,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <div>
                 <div className="flex justify-between text-slate-600 mb-1">
                   <span>Sin Fecha Nac. Tutor</span>
-                  <span className="font-bold text-slate-800">{calidad?.sin_fecha_nacimiento_rep_pct || 8}%</span>
+                  <span className="font-bold text-slate-800">{sinFechaRepCount} casos ({sinFechaRepPct}%)</span>
                 </div>
                 <div className="w-full bg-slate-100 rounded-full h-1.5">
                   <div
-                    className="bg-blue-600 h-full rounded-full"
-                    style={{ width: `${calidad?.sin_fecha_nacimiento_rep_pct || 8}%` }}
+                    className="bg-blue-600 h-full rounded-full transition-all duration-500"
+                    style={{ width: `${sinFechaRepPct}%` }}
                   />
                 </div>
               </div>
@@ -754,12 +879,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <div>
                 <div className="flex justify-between text-slate-600 mb-1">
                   <span>Direcciones Incompletas</span>
-                  <span className="font-bold text-slate-800">{calidad?.direcciones_incompletas_pct || 5}%</span>
+                  <span className="font-bold text-slate-800">{dirIncompletasCount} casos ({dirIncompletasPct}%)</span>
                 </div>
                 <div className="w-full bg-slate-100 rounded-full h-1.5">
                   <div
-                    className="bg-purple-600 h-full rounded-full"
-                    style={{ width: `${calidad?.direcciones_incompletas_pct || 5}%` }}
+                    className="bg-purple-600 h-full rounded-full transition-all duration-500"
+                    style={{ width: `${dirIncompletasPct}%` }}
                   />
                 </div>
               </div>

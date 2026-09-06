@@ -22,7 +22,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   personalCount = 18,
   beneficiariasCount = 34
 }) => {
-  const { role, isAdmin, isLector } = useAuth();
+  const { isAdmin, isLector } = useAuth();
 
   const navItems = [
     {
@@ -117,26 +117,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </nav>
       </div>
 
-      {/* Bottom Section: Institutional Badge & Logout */}
-      <div className="p-4 border-t border-slate-100 space-y-3">
-        {/* Sede Info card */}
-        <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-700">
-                Sede Caracas
-              </span>
-            </div>
-            <span className="text-[10px] font-mono font-semibold text-[#00256F] bg-blue-100/70 px-1.5 py-0.5 rounded">
-              {role || 'Admin'}
-            </span>
-          </div>
-          <p className="text-[11px] text-slate-500 mt-1.5">
-            API Fundasamaritanos · Conectado
-          </p>
-        </div>
-
+      {/* Bottom Section: Logout */}
+      <div className="p-4 border-t border-slate-100">
         {/* Logout button */}
         <button
           onClick={onLogout}

@@ -55,11 +55,8 @@ export const Logo: React.FC<LogoProps> = ({ size = 'md', variant = 'full', class
       </div>
 
       {variant !== 'icon-only' && (
-        <div className="flex flex-col">
-          <span className={`font-bold tracking-tight text-[#00256F] font-display ${text}`}>
-            Fundasamaritanos
-          </span>
-          <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wider">
+        <div className="flex flex-col justify-center">
+          <span className={`font-bold tracking-tight text-[#00256F] font-display leading-tight text-sm`}>
             Gestión Administrativa
           </span>
         </div>

@@ -135,23 +135,30 @@ export interface AppConfig {
 
 /* ================== API DASHBOARD JSON SCHEMA ================== */
 export interface DashboardAlertItem {
-  id: string;
-  expCode: string;
+  id?: string | number;
+  id_beneficiaria?: number;
+  expCode?: string;
   nombres: string;
   apellidos: string;
   edad?: number;
-  detalle?: string;
+  detalle?: string | null;
 }
 
 export interface DashboardBirthdayItem {
-  id: string;
-  nombre: string;
-  fecha: string;
-  edad_cumplir: number;
-  dias_faltantes: string; // "Hoy", "En 2 días", "En 5 días"
+  id?: string | number;
+  id_beneficiaria?: number;
+  nombre?: string;
+  nombres?: string;
+  apellidos?: string;
+  fecha?: string;
+  fecha_nacimiento?: string;
+  edad_cumplir?: number;
+  dias_faltantes?: string;
+  dias_para_cumpleanios?: number;
 }
 
 export interface DashboardResponseData {
+  generado_en?: string;
   metricas: {
     beneficiarias_activas: number;
     total_expedientes: number;
@@ -159,34 +166,48 @@ export interface DashboardResponseData {
     promedio_beneficiarias_por_familia: number;
   };
   distribucion: {
-    por_rango_etario: {
-      '0-5': number;
-      '6-10': number;
-      '11-14': number;
-      '15-17': number;
-      '18+': number;
-    };
-    por_institucion: {
-      institucion: string;
-      cantidad: number;
-    }[];
-    evolucion_mensual: {
-      periodo: string; // "2025-04", "2025-05"
+    por_estado?: { nombre: string; cantidad: number }[];
+    por_rango_etario: { rango: string; cantidad: number }[] | Record<string, number>;
+    por_institucion: { nombre?: string; institucion?: string; cantidad: number }[];
+    evolucion_mensual?: {
+      mes?: string;
+      periodo?: string;
       ingresos: number;
       egresos: number;
     }[];
   };
+  evolucion_mensual?: {
+    mes: string;
+    ingresos: number;
+    egresos: number;
+  }[];
   alertas: {
     sin_representante: DashboardAlertItem[];
     proximas_a_egresar: DashboardAlertItem[];
-    egresadas_sin_fecha: DashboardAlertItem[];
+    egresadas_sin_fecha?: DashboardAlertItem[];
+    egresadas_sin_fecha_egreso?: DashboardAlertItem[];
     sin_grado_escolar: DashboardAlertItem[];
+    expedientes_inactivos_con_activa?: DashboardAlertItem[];
+    total_sin_representante?: number;
+    total_proximas_a_egresar?: number;
+    total_egresadas_sin_fecha?: number;
+    total_sin_grado?: number;
+    total_exp_inactivos?: number;
   };
   cumpleanios_proximos: DashboardBirthdayItem[];
+  familias?: {
+    total_familias: number;
+    promedio_beneficiarias_por_familia: number;
+    familias_sin_representante: number;
+  };
   calidad_de_datos: {
-    sin_cedula_pct: number;
-    sin_fecha_nacimiento_rep_pct: number;
-    direcciones_incompletas_pct: number;
-    puntaje_general_pct: number;
+    beneficiarias_sin_cedula?: number;
+    beneficiarias_sin_grado?: number;
+    representantes_sin_fecha_nacimiento?: number;
+    direcciones_incompletas?: number;
+    sin_cedula_pct?: number;
+    sin_fecha_nacimiento_rep_pct?: number;
+    direcciones_incompletas_pct?: number;
+    puntaje_general_pct?: number;
   };
 }

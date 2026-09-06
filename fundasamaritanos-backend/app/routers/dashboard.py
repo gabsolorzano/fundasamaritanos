@@ -154,6 +154,7 @@ router = APIRouter(
 )
 
 
+@router.get("", response_model=DashboardResponse, status_code=status.HTTP_200_OK, include_in_schema=False)
 @router.get("/", response_model=DashboardResponse, status_code=status.HTTP_200_OK)
 async def obtener_dashboard(db: AsyncSession = Depends(get_db)):
     """
@@ -330,7 +331,13 @@ async def obtener_dashboard(db: AsyncSession = Depends(get_db)):
 
     subq_rep = (
         select(BeneficiariaRepresentante.id_beneficiaria)
-        .where(BeneficiariaRepresentante.id_beneficiaria == Beneficiaria.id_beneficiaria)
+        .join(Representante, BeneficiariaRepresentante.id_representante == Representante.id_representante)
+        .where(
+            and_(
+                BeneficiariaRepresentante.id_beneficiaria == Beneficiaria.id_beneficiaria,
+                Representante.activo == True
+            )
+        )
         .correlate(Beneficiaria)
     )
 
