@@ -3,6 +3,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 
+from sqlalchemy import select
+from app.models.parentesco import Parentesco
 from app.core.db import get_db
 from app.core.deps import get_current_user, require_editor_or_admin, require_admin_only
 from app.schemas.representante import (
@@ -19,6 +21,14 @@ router = APIRouter(
     dependencies=[Depends(get_current_user)]
 )
 
+@router.get("/parentescos", status_code=status.HTTP_200_OK)
+async def listar_parentescos(db: AsyncSession = Depends(get_db)):
+    # Lista todos los parentescos disponibles en la BD
+    result = await db.execute(select(Parentesco).order_by(Parentesco.id_parentesco))
+    parentescos = result.scalars().all()
+    return [{"id_parentesco": p.id_parentesco, "descripcion": p.descripcion} for p in parentescos]
+
+@router.get("", response_model=List[RepresentanteResponse], status_code=status.HTTP_200_OK, include_in_schema=False)
 @router.get("/", response_model=List[RepresentanteResponse], status_code=status.HTTP_200_OK)
 async def list_representantes(
     nombre: Optional[str] = Query(None, description="Filtrar por nombre"),

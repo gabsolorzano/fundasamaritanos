@@ -21,6 +21,7 @@ router = APIRouter(
     dependencies=[Depends(get_current_user)]
 )
 
+@router.get("", response_model=List[BeneficiariaResponse], status_code=status.HTTP_200_OK, include_in_schema=False)
 @router.get("/", response_model=List[BeneficiariaResponse], status_code=status.HTTP_200_OK)
 async def list_beneficiarias(
     nombre: Optional[str] = Query(None, description="Filtrar por nombre"),
@@ -34,9 +35,9 @@ async def list_beneficiarias(
     edad: Optional[int] = Query(None, ge=0, description="Filtrar por edad exacta en años"),
     edad_min: Optional[int] = Query(None, ge=0, description="Edad mínima"),
     edad_max: Optional[int] = Query(None, ge=0, description="Edad máxima"),
-    activo: Optional[bool] = Query(True, description="Filtrar por activas (true) o inactivas/histórico (false)"),
+    activo: Optional[bool] = Query(None, description="Filtrar por activas (true), inactivas (false) o todas (None)"),
     skip: int = Query(0, ge=0),
-    limit: int = Query(10, ge=1, le=100),
+    limit: int = Query(100, ge=1, le=1000),
     order_by: str = Query("id", regex="^(id|nombres|apellidos|edad|estado|institucion|grado|lugar_nacimiento)$"),
     order_dir: str = Query("asc", regex="^(asc|desc)$"),
     db: AsyncSession = Depends(get_db)

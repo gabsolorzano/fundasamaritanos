@@ -46,7 +46,13 @@ class BeneficiariaService:
         order_by: str = "id",
         order_dir: str = "asc"
     ):
-        stmt = select(Beneficiaria)
+        stmt = select(Beneficiaria).options(
+            selectinload(Beneficiaria.expediente),
+            selectinload(Beneficiaria.institucion),
+            selectinload(Beneficiaria.estado_beneficiaria),
+            selectinload(Beneficiaria.representantes).selectinload(BeneficiariaRepresentante.representante),
+            selectinload(Beneficiaria.representantes).selectinload(BeneficiariaRepresentante.parentesco)
+        )
         
         # Uniones condicionales (outerjoin) solo si se requiere filtrar u ordenar por la tabla relacionada
         necesita_expediente = bool(codigo_expediente or order_by == "codigo_expediente")

@@ -20,6 +20,7 @@ router = APIRouter(
     dependencies=[Depends(get_current_user)]
 )
 
+@router.get("", response_model=List[ExpedienteResponse], status_code=status.HTTP_200_OK, include_in_schema=False)
 @router.get("/", response_model=List[ExpedienteResponse], status_code=status.HTTP_200_OK)
 async def list_expedientes(
     codigo: Optional[str] = Query(None, description="Filtrar por código de expediente (ej: EXP-2026)"),

@@ -50,7 +50,7 @@ export interface PersonalUsuarioCredentials {
   ultimo_acceso?: string;
 }
 
-export type BeneficiariaStatus = 'Activa' | 'Trasladada' | 'Egresada';
+export type BeneficiariaStatus = 'Activa' | 'Trasladada' | 'Egresada' | 'Anulada';
 export type ExpedientePriority = 'Normal' | 'Media' | 'Urgente';
 export type ExpedienteType = 'Protección Integral' | 'Apoyo Educativo' | 'Salud y Nutrición' | 'Emergencia Social';
 
@@ -90,6 +90,11 @@ export interface Beneficiaria {
   representantes: Representante[];
   hermanasIds: string[];
   avatarBg?: string;
+  activo?: boolean;
+  telefonoPrincipal?: string;
+  telefonoSecundario?: string;
+  observacionesExpediente?: string;
+  id_institucion?: number;
 }
 
 export interface PersonalMember {

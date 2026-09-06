@@ -24,11 +24,12 @@ router = APIRouter(
     dependencies=[Depends(get_current_user)]
 )
 
+@router.get("", response_model=List[InstitucionResponse], status_code=status.HTTP_200_OK, include_in_schema=False)
 @router.get("/", response_model=List[InstitucionResponse], status_code=status.HTTP_200_OK)
 async def listar_instituciones(
     q: Optional[str] = Query(None, description="Filtrar por nombre de la institución"),
     skip: int = Query(0, ge=0),
-    limit: int = Query(10, ge=1, le=100),
+    limit: int = Query(100, ge=1, le=500),
     order_by: str = Query("id", regex="^(id|nombre|telefono)$"),
     order_dir: str = Query("asc", regex="^(asc|desc)$"),
     db: AsyncSession = Depends(get_db)
@@ -50,6 +51,7 @@ async def obtener_institucion(
         )
     return institucion
 
+@router.post("", response_model=InstitucionResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_editor_or_admin)], include_in_schema=False)
 @router.post(
     "/", 
     response_model=InstitucionResponse, 

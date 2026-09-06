@@ -148,6 +148,15 @@ export const beneficiariasApi = {
   },
 
   /**
+   * GET /beneficiarias/{id}
+   */
+  get: async (id: string | number): Promise<any> => {
+    return apiClient.request(`/beneficiarias/${id}`, {
+      method: 'GET'
+    });
+  },
+
+  /**
    * POST /beneficiarias/
    */
   create: async (data: Partial<Beneficiaria>): Promise<Beneficiaria> => {
@@ -160,7 +169,7 @@ export const beneficiariasApi = {
   /**
    * PUT /beneficiarias/{id}
    */
-  update: async (id: string, data: Partial<Beneficiaria>): Promise<Beneficiaria> => {
+  update: async (id: string | number, data: any): Promise<any> => {
     return apiClient.request(`/beneficiarias/${id}`, {
       method: 'PUT',
       body: data
@@ -170,9 +179,125 @@ export const beneficiariasApi = {
   /**
    * DELETE /beneficiarias/{id}
    */
-  delete: async (id: string): Promise<{ message: string }> => {
+  delete: async (id: string | number): Promise<{ message: string }> => {
     return apiClient.request(`/beneficiarias/${id}`, {
       method: 'DELETE'
+    });
+  }
+};
+
+export const direccionesApi = {
+  /**
+   * GET /direcciones
+   */
+  list: async (params?: Record<string, any>): Promise<any[]> => {
+    return apiClient.request('/direcciones', {
+      method: 'GET',
+      params: { limit: 200, ...params }
+    });
+  },
+
+  /**
+   * POST /direcciones
+   */
+  create: async (data: {
+    calle_av: string;
+    urbanizacion: string;
+    ciudad: string;
+    municipio: string;
+    estado: string;
+    edificio_casa?: string;
+  }): Promise<any> => {
+    return apiClient.request('/direcciones', {
+      method: 'POST',
+      body: data
+    });
+  }
+};
+
+export const institucionesApi = {
+  /**
+   * GET /instituciones
+   */
+  list: async (params?: Record<string, any>): Promise<any[]> => {
+    return apiClient.request('/instituciones', {
+      method: 'GET',
+      params: { limit: 200, ...params }
+    });
+  },
+
+  /**
+   * POST /instituciones
+   */
+  create: async (data: {
+    nombre: string;
+    telefono?: string;
+    id_direccion: number;
+  }): Promise<any> => {
+    return apiClient.request('/instituciones', {
+      method: 'POST',
+      body: data
+    });
+  }
+};
+
+export const representantesApi = {
+  /**
+   * GET /representantes
+   */
+  list: async (params?: Record<string, any>): Promise<any[]> => {
+    return apiClient.request('/representantes', {
+      method: 'GET',
+      params: { limit: 200, ...params }
+    });
+  },
+
+  /**
+   * GET /representantes/parentescos
+   */
+  listParentescos: async (): Promise<{ id_parentesco: number; descripcion: string }[]> => {
+    return apiClient.request('/representantes/parentescos', {
+      method: 'GET'
+    });
+  },
+
+  /**
+   * GET /representantes/{id}
+   */
+  get: async (id: number | string): Promise<any> => {
+    return apiClient.request(`/representantes/${id}`, {
+      method: 'GET'
+    });
+  },
+
+  /**
+   * PUT /representantes/{id}
+   */
+  update: async (id: number | string, data: any): Promise<any> => {
+    return apiClient.request(`/representantes/${id}`, {
+      method: 'PUT',
+      body: data
+    });
+  }
+};
+
+export const expedientesApi = {
+  /**
+   * GET /expedientes/{id}
+   */
+  get: async (id: number | string): Promise<any> => {
+    return apiClient.request(`/expedientes/${id}`, {
+      method: 'GET'
+    });
+  },
+
+  /**
+   * PUT /expedientes/{id}
+   */
+  update: async (id: number | string, data: any): Promise<any> => {
+    return apiClient.request(`/expedientes/${id}`, {
+      method: 'PUT',
+      body: data
     });
   }
 };

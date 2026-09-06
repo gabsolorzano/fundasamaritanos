@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Beneficiaria, ViewMode, BeneficiariaStatus } from '../types';
 import { useAuth } from '../context/AuthContext';
 
@@ -17,6 +17,9 @@ export const BeneficiariasView: React.FC<BeneficiariasViewProps> = ({
 }) => {
   const { isAdmin, isLector, role } = useAuth();
 
+  // Scope: 'actual' (solo activas) vs 'historico' (egresadas, trasladadas, anuladas, inactivas)
+  const [viewScope, setViewScope] = useState<'actual' | 'historico'>('actual');
+
   // Search and debounce (350ms)
   const [searchInput, setSearchInput] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -27,8 +30,9 @@ export const BeneficiariasView: React.FC<BeneficiariasViewProps> = ({
   const [institucionFilter, setInstitucionFilter] = useState<string>('Todas');
   const [edadRange, setEdadRange] = useState<'Todas' | '0-5' | '6-10' | '11-14' | '15+'>('Todas');
   const [showFiltersPopover, setShowFiltersPopover] = useState(false);
+  const popoverRef = useRef<HTMLDivElement>(null);
 
-  // Pagination & Sorting (API Standard params: skip, limit, order_by, order_dir)
+  // Pagination & Sorting (skip, limit, order_by, order_dir)
   const [currentPage, setCurrentPage] = useState(1);
   const [limit, setLimit] = useState(8);
   const [orderBy, setOrderBy] = useState<'expCode' | 'nombres' | 'edad' | 'estado'>('expCode');
@@ -45,40 +49,76 @@ export const BeneficiariasView: React.FC<BeneficiariasViewProps> = ({
     return () => clearTimeout(handler);
   }, [searchInput]);
 
+  // Counts for scope tabs
+  const activasCount = useMemo(() => {
+    return beneficiarias.filter((b) => b.estado === 'Activa' && b.activo !== false).length;
+  }, [beneficiarias]);
+
+  const historicoCount = useMemo(() => {
+    return beneficiarias.filter((b) => b.estado !== 'Activa' || b.activo === false).length;
+  }, [beneficiarias]);
+
+  // Click outside to close filters popover
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (popoverRef.current && !popoverRef.current.contains(event.target as Node)) {
+        setShowFiltersPopover(false);
+      }
+    };
+    if (showFiltersPopover) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showFiltersPopover]);
+
   // Unique institutions for filter dropdown
   const uniqueInstitutions = useMemo(() => {
     const insts = new Set<string>();
     beneficiarias.forEach((b) => {
-      if (b.institucionEducativa && b.institucionEducativa.trim()) {
-        insts.add(b.institucionEducativa.trim());
+      const val = b.institucionEducativa?.trim();
+      if (val && val !== 'Sin asignar') {
+        insts.add(val);
       }
     });
-    return Array.from(insts);
+    return Array.from(insts).sort();
   }, [beneficiarias]);
 
   // Unique grados
   const uniqueGrados = useMemo(() => {
     const gr = new Set<string>();
     beneficiarias.forEach((b) => {
-      if (b.grado && b.grado.trim()) gr.add(b.grado.trim());
+      const val = b.grado?.trim();
+      if (val) gr.add(val);
     });
-    return Array.from(gr);
+    return Array.from(gr).sort();
   }, [beneficiarias]);
 
   // Filtered & Sorted list
   const filteredBeneficiarias = useMemo(() => {
     return beneficiarias
       .filter((item) => {
-        // Debounced text matching nombre, apellido, codigo_expediente, institucion, representante
+        // Scope filter: Información Actual (Activas) vs Histórico (No activas)
+        const isActiva = item.estado === 'Activa' && item.activo !== false;
+        if (viewScope === 'actual' && !isActiva) return false;
+        if (viewScope === 'historico' && isActiva) return false;
+
+        // Robust text matching
         const s = debouncedSearch.toLowerCase().trim();
+        const fullName = `${item.nombres || ''} ${item.apellidos || ''}`.toLowerCase();
+        const reversedName = `${item.apellidos || ''} ${item.nombres || ''}`.toLowerCase();
         const matchesSearch =
           !s ||
-          item.nombres.toLowerCase().includes(s) ||
-          item.apellidos.toLowerCase().includes(s) ||
-          item.expCode.toLowerCase().includes(s) ||
+          (item.nombres && item.nombres.toLowerCase().includes(s)) ||
+          (item.apellidos && item.apellidos.toLowerCase().includes(s)) ||
+          fullName.includes(s) ||
+          reversedName.includes(s) ||
+          (item.expCode && item.expCode.toLowerCase().includes(s)) ||
           (item.institucionEducativa && item.institucionEducativa.toLowerCase().includes(s)) ||
-          item.representantePrincipal.toLowerCase().includes(s) ||
-          item.cedula.toLowerCase().includes(s);
+          (item.representantePrincipal && item.representantePrincipal.toLowerCase().includes(s)) ||
+          (item.cedula && item.cedula.toLowerCase().includes(s)) ||
+          (item.grado && item.grado.toLowerCase().includes(s));
 
         // Status filter
         const matchesStatus = statusFilter === 'Todos' || item.estado === statusFilter;
@@ -113,6 +153,7 @@ export const BeneficiariasView: React.FC<BeneficiariasViewProps> = ({
       });
   }, [
     beneficiarias,
+    viewScope,
     debouncedSearch,
     statusFilter,
     gradoFilter,
@@ -144,6 +185,8 @@ export const BeneficiariasView: React.FC<BeneficiariasViewProps> = ({
         return 'bg-amber-50 text-amber-700 border-amber-200';
       case 'Egresada':
         return 'bg-slate-100 text-slate-600 border-slate-200';
+      case 'Anulada':
+        return 'bg-rose-50 text-rose-700 border-rose-200';
       default:
         return 'bg-blue-50 text-blue-700 border-blue-200';
     }
@@ -171,12 +214,9 @@ export const BeneficiariasView: React.FC<BeneficiariasViewProps> = ({
             <h1 className="text-2xl sm:text-3xl font-bold text-[#00256F] font-display">
               Beneficiarias y Expedientes
             </h1>
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-blue-50 text-[#00256F] border border-blue-200">
-              GET /beneficiarias/
-            </span>
           </div>
           <p className="text-sm text-slate-500 font-medium">
-            Listado reactivo con debounce de búsqueda, ordenamiento dinámico y control de acceso según rol.
+            Registro integral de beneficiarias, expedientes y representantes de la fundación.
           </p>
         </div>
 
@@ -198,6 +238,53 @@ export const BeneficiariasView: React.FC<BeneficiariasViewProps> = ({
         )}
       </div>
 
+      {/* Scope Selector: Información Actual vs Histórico */}
+      <div className="flex items-center gap-2 border-b border-slate-200/80 pb-1">
+        <button
+          onClick={() => {
+            setViewScope('actual');
+            setCurrentPage(1);
+          }}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+            viewScope === 'actual'
+              ? 'bg-[#00256F] text-white shadow-sm'
+              : 'text-slate-600 hover:text-[#00256F] hover:bg-slate-100'
+          }`}
+        >
+          <span className="material-symbols-outlined text-[18px]">verified_user</span>
+          <span>Información Actual</span>
+          <span
+            className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+              viewScope === 'actual' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+            }`}
+          >
+            {activasCount}
+          </span>
+        </button>
+
+        <button
+          onClick={() => {
+            setViewScope('historico');
+            setCurrentPage(1);
+          }}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+            viewScope === 'historico'
+              ? 'bg-[#00256F] text-white shadow-sm'
+              : 'text-slate-600 hover:text-[#00256F] hover:bg-slate-100'
+          }`}
+        >
+          <span className="material-symbols-outlined text-[18px]">history</span>
+          <span>Histórico</span>
+          <span
+            className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+              viewScope === 'historico' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+            }`}
+          >
+            {historicoCount}
+          </span>
+        </button>
+      </div>
+
       {/* Search & Filter Toolbar */}
       <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col sm:flex-row items-center gap-3">
         {/* Search input with debounce */}
@@ -210,7 +297,7 @@ export const BeneficiariasView: React.FC<BeneficiariasViewProps> = ({
             type="text"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="Buscar por nombre, código EXP, institución o representante (debounce 350ms)..."
+            placeholder="Buscar por nombre, apellido, cédula, código EXP, institución o representante..."
             className="w-full pl-11 pr-10 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#00256F] focus:border-[#00256F] transition outline-none"
           />
           {searchInput && (
@@ -244,7 +331,7 @@ export const BeneficiariasView: React.FC<BeneficiariasViewProps> = ({
           </button>
 
           {showFiltersPopover && (
-            <div className="absolute right-0 mt-2 w-72 sm:w-80 bg-white rounded-2xl shadow-2xl border border-slate-200 p-4 z-40 animate-in fade-in space-y-4">
+            <div ref={popoverRef} className="absolute right-0 mt-2 w-72 sm:w-80 bg-white rounded-2xl shadow-2xl border border-slate-200 p-4 z-40 animate-in fade-in space-y-4">
               <div className="flex items-center justify-between pb-2 border-b border-slate-100">
                 <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
                   Filtros de Búsqueda
@@ -269,8 +356,8 @@ export const BeneficiariasView: React.FC<BeneficiariasViewProps> = ({
                 <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">
                   Estado
                 </label>
-                <div className="grid grid-cols-2 gap-1 text-xs">
-                  {(['Todos', 'Activa', 'Trasladada', 'Egresada'] as const).map((st) => (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-1 text-xs">
+                  {(['Todos', 'Activa', 'Trasladada', 'Egresada', 'Anulada'] as const).map((st) => (
                     <button
                       key={st}
                       onClick={() => setStatusFilter(st)}
@@ -386,7 +473,7 @@ export const BeneficiariasView: React.FC<BeneficiariasViewProps> = ({
                   className="py-4 px-6 cursor-pointer hover:text-[#00256F] transition"
                 >
                   <div className="flex items-center gap-1.5">
-                    <span>Edad (API)</span>
+                    <span>Edad</span>
                     <span className="material-symbols-outlined text-[16px]">
                       {orderBy === 'edad' ? (orderDir === 'asc' ? 'arrow_upward' : 'arrow_downward') : 'unfold_more'}
                     </span>
@@ -452,14 +539,18 @@ export const BeneficiariasView: React.FC<BeneficiariasViewProps> = ({
                       </div>
                     </td>
 
-                    {/* Edad computada directamente desde la API */}
+                    {/* Edad */}
                     <td className="py-4 px-6 text-slate-700 whitespace-nowrap">
                       <span className="font-bold text-slate-900">{ben.edad}</span> años
                     </td>
 
                     {/* Representante Principal */}
                     <td className="py-4 px-6 text-slate-700 whitespace-nowrap">
-                      {ben.representantePrincipal}
+                      {ben.representantePrincipal === 'Sin representante asignado' || !ben.representantePrincipal ? (
+                        <span className="text-slate-400 italic">Sin representante asignado</span>
+                      ) : (
+                        <span className="font-medium text-slate-800">{ben.representantePrincipal}</span>
+                      )}
                     </td>
 
                     {/* Institución / Grado */}
@@ -467,17 +558,17 @@ export const BeneficiariasView: React.FC<BeneficiariasViewProps> = ({
                       <p className="font-medium text-slate-800 truncate max-w-[180px]" title={ben.institucionEducativa}>
                         {ben.institucionEducativa || 'Sin asignar'}
                       </p>
-                      <p className="text-[11px] text-slate-400">{ben.grado}</p>
+                      {ben.grado && <p className="text-[11px] text-slate-400">{ben.grado}</p>}
                     </td>
 
                     {/* Estado */}
                     <td className="py-4 px-6 whitespace-nowrap">
                       <span
                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${getStatusBadge(
-                          ben.estado
+                          ben.estado || 'Activa'
                         )}`}
                       >
-                        {ben.estado}
+                        {ben.estado || 'Activa'}
                       </span>
                     </td>
 
@@ -495,12 +586,12 @@ export const BeneficiariasView: React.FC<BeneficiariasViewProps> = ({
                           </span>
                         </button>
 
-                        {/* RBAC: Solo Administrador puede eliminar expediente (DELETE /beneficiarias/{id}) */}
+                        {/* RBAC: Solo Administrador puede eliminar expediente */}
                         {isAdmin && (
                           <button
                             onClick={() => setBeneficiariaToDelete(ben)}
                             className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
-                            title="Eliminar Expediente (DELETE /beneficiarias/{id})"
+                            title="Eliminar Expediente"
                           >
                             <span className="material-symbols-outlined text-[20px]">delete</span>
                           </button>
@@ -573,7 +664,7 @@ export const BeneficiariasView: React.FC<BeneficiariasViewProps> = ({
               ¿Eliminar expediente {beneficiariaToDelete.expCode}?
             </h3>
             <p className="text-xs text-slate-500 text-center mt-1">
-              Esta acción invocará <code>DELETE /beneficiarias/{beneficiariaToDelete.id}</code> y retirará a {beneficiariaToDelete.nombres} {beneficiariaToDelete.apellidos} del sistema.
+              Esta acción retirará permanentemente a {beneficiariaToDelete.nombres} {beneficiariaToDelete.apellidos} del sistema.
             </p>
             <div className="mt-5 flex gap-2.5">
               <button

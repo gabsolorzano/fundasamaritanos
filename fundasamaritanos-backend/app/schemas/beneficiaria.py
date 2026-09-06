@@ -52,6 +52,7 @@ class BeneficiariaCreate(BeneficiariaBase):
     _ESTADO_ACTIVA = 1
     _ESTADO_EGRESADA = 2
     _ESTADO_TRASLADADA = 3
+    _ESTADO_ANULADA = 4
 
     @model_validator(mode="after")
     def validar_estado_y_representante(self):
@@ -59,10 +60,10 @@ class BeneficiariaCreate(BeneficiariaBase):
         estado_id = self.id_estado_beneficiaria
         fecha_egreso = self.fecha_egreso
 
-        if estado_id in (self._ESTADO_EGRESADA, self._ESTADO_TRASLADADA):
+        if estado_id in (self._ESTADO_EGRESADA, self._ESTADO_TRASLADADA, self._ESTADO_ANULADA):
             if fecha_egreso is None:
                 raise ValueError(
-                    "La fecha de egreso es obligatoria cuando el estado es 'Egresada' o 'Trasladada'."
+                    "La fecha de egreso es obligatoria cuando el estado es 'Egresada', 'Trasladada' o 'Anulada'."
                 )
         elif estado_id == self._ESTADO_ACTIVA:
             if fecha_egreso is not None:
@@ -115,6 +116,7 @@ class BeneficiariaUpdate(BaseModel):
     _ESTADO_ACTIVA = 1
     _ESTADO_EGRESADA = 2
     _ESTADO_TRASLADADA = 3
+    _ESTADO_ANULADA = 4
 
     @model_validator(mode="after")
     def validar_fechas_y_representante(self):
@@ -128,10 +130,10 @@ class BeneficiariaUpdate(BaseModel):
             estado_id = self.id_estado_beneficiaria
             fecha_egreso = self.fecha_egreso
 
-            if estado_id in (self._ESTADO_EGRESADA, self._ESTADO_TRASLADADA):
+            if estado_id in (self._ESTADO_EGRESADA, self._ESTADO_TRASLADADA, self._ESTADO_ANULADA):
                 if fecha_egreso is None:
                     raise ValueError(
-                        "La fecha de egreso es obligatoria cuando el estado es 'Egresada' o 'Trasladada'."
+                        "La fecha de egreso es obligatoria cuando el estado es 'Egresada', 'Trasladada' o 'Anulada'."
                     )
             elif estado_id == self._ESTADO_ACTIVA:
                 if fecha_egreso is not None:
@@ -156,6 +158,12 @@ class BeneficiariaResponse(BeneficiariaBase):
     id_institucion: int
     id_estado_beneficiaria: int
     activo: bool
+
+    # Campos enriquecidos derivados de relaciones
+    codigo_expediente: Optional[str] = None
+    institucion_nombre: Optional[str] = None
+    estado: Optional[str] = None
+    representante_principal: Optional[str] = None
 
     @computed_field
     @property

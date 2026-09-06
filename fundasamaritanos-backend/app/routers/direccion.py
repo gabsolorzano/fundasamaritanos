@@ -13,6 +13,7 @@ router = APIRouter(
     dependencies=[Depends(get_current_user)]
 )
 
+@router.get("", response_model=List[DireccionResponse], status_code=status.HTTP_200_OK, include_in_schema=False)
 @router.get("/", response_model=List[DireccionResponse], status_code=status.HTTP_200_OK)
 async def listar_o_buscar_direcciones(
     q: Optional[str] = Query(None, description="Búsqueda libre en calle, edificio, urbanización, ciudad, municipio o estado"),
@@ -20,7 +21,7 @@ async def listar_o_buscar_direcciones(
     municipio: Optional[str] = Query(None, description="Filtrar por municipio"),
     estado: Optional[str] = Query(None, description="Filtrar por estado"),
     skip: int = Query(0, ge=0),
-    limit: int = Query(10, ge=1, le=100),
+    limit: int = Query(100, ge=1, le=500),
     order_by: str = Query("id", regex="^(id|ciudad|municipio|estado|urbanizacion)$"),
     order_dir: str = Query("asc", regex="^(asc|desc)$"),
     db: AsyncSession = Depends(get_db)
@@ -45,6 +46,7 @@ async def obtener_direccion_por_id(
         )
     return direccion
 
+@router.post("", response_model=DireccionResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_editor_or_admin)], include_in_schema=False)
 @router.post(
     "/", 
     response_model=DireccionResponse, 

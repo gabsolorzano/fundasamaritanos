@@ -35,7 +35,26 @@ class Beneficiaria(Base):
         return self.estado_beneficiaria.descripcion if self.estado_beneficiaria else ""
 
     @property
+    def codigo_expediente(self) -> str:
+        return self.expediente.codigo_expediente if self.expediente else ""
+
+    @property
+    def institucion_nombre(self) -> str:
+        return self.institucion.nombre if self.institucion else ""
+
+    @property
+    def representante_principal(self) -> str:
+        if not self.representantes:
+            return "Sin representante asignado"
+        for br in self.representantes:
+            if br.representante and br.representante.activo:
+                parentesco = f" ({br.parentesco.descripcion})" if br.parentesco else ""
+                return f"{br.representante.nombres} {br.representante.apellidos}{parentesco}"
+        return "Sin representante asignado"
+
+    @property
     def hermanas(self):
         if not self.expediente or not self.expediente.beneficiarias:
             return []
-        return [b for b in self.expediente.beneficiarias if b.id_beneficiaria != self.id_beneficiaria]
+        curr_id = int(self.id_beneficiaria) if self.id_beneficiaria is not None else None
+        return [b for b in self.expediente.beneficiarias if int(b.id_beneficiaria) != curr_id]

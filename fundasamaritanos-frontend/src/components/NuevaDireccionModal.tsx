@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
+import { direccionesApi } from '../api/endpoints';
 
 interface NuevaDireccionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (fullAddress: string) => void;
+  onSave: (fullAddress: string, direccionData?: any) => void;
 }
 
 export const NuevaDireccionModal: React.FC<NuevaDireccionModalProps> = ({
@@ -18,11 +19,13 @@ export const NuevaDireccionModal: React.FC<NuevaDireccionModalProps> = ({
   const [calle, setCalle] = useState('');
   const [inmueble, setInmueble] = useState('');
   const [puntoReferencia, setPuntoReferencia] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
     const parts = [
       calle.trim(),
       inmueble.trim(),
@@ -34,8 +37,24 @@ export const NuevaDireccionModal: React.FC<NuevaDireccionModalProps> = ({
     ].filter(Boolean);
 
     const fullAddress = parts.join(', ');
-    onSave(fullAddress);
-    onClose();
+
+    try {
+      const created = await direccionesApi.create({
+        calle_av: calle.trim() || 'Principal',
+        urbanizacion: sector.trim() || 'Sector Central',
+        ciudad: parroquia.trim() || 'Caracas',
+        municipio: municipio.trim() || 'Sucre',
+        estado: estado.trim() || 'Miranda',
+        edificio_casa: inmueble.trim() || undefined
+      });
+      onSave(fullAddress, created);
+    } catch (err) {
+      console.warn('Registro local de dirección:', err);
+      onSave(fullAddress);
+    } finally {
+      setIsSubmitting(false);
+      onClose();
+    }
   };
 
   return (

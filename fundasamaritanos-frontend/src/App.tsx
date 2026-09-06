@@ -35,6 +35,59 @@ export default function App() {
     setTimeout(() => setGlobalToast(null), 4000);
   };
 
+const normalizeBeneficiaria = (b: any): Beneficiaria => {
+  const estadoMap: Record<number, BeneficiariaStatus> = {
+    1: 'Activa',
+    2: 'Egresada',
+    3: 'Trasladada',
+    4: 'Anulada'
+  };
+
+  const id = String(b.id_beneficiaria ?? b.id ?? '');
+  const expCode = b.codigo_expediente || b.expCode || (b.id_expediente ? `EXP-${String(b.id_expediente).padStart(4, '0')}` : 'S/E');
+  const nombres = b.nombres || '';
+  const apellidos = b.apellidos || '';
+  const cedula = b.cedula_identidad || b.cedula || '';
+  const edad = typeof b.edad === 'number' ? b.edad : 0;
+  const grado = b.grado_actual || b.grado || '';
+  const institucionEducativa = b.institucion_nombre || b.institucion?.nombre || b.institucionEducativa || 'Sin asignar';
+  const estado: BeneficiariaStatus = (b.estado && ['Activa', 'Trasladada', 'Egresada', 'Anulada'].includes(b.estado))
+    ? (b.estado as BeneficiariaStatus)
+    : (b.id_estado_beneficiaria ? (estadoMap[b.id_estado_beneficiaria] || 'Activa') : 'Activa');
+  const representantePrincipal = b.representante_principal || b.representantePrincipal || 'Sin representante asignado';
+  const fechaNacimiento = b.fecha_nacimiento || b.fechaNacimiento || '';
+  const fechaEgreso = b.fecha_egreso || b.fechaEgreso || null;
+  const observaciones = b.observaciones || '';
+  const lugarNacimiento = b.lugar_nacimiento?.ciudad || b.lugarNacimiento || '';
+  const direccion = b.direccion || '';
+
+  return {
+    id,
+    expCode,
+    nombres,
+    apellidos,
+    cedula,
+    lugarNacimiento,
+    fechaNacimiento,
+    edad,
+    direccion,
+    institucionEducativa,
+    grado,
+    estado,
+    fechaIngreso: b.fecha_ingreso || b.fechaIngreso || (b.expediente?.fecha_apertura ? String(b.expediente.fecha_apertura) : ''),
+    fechaEgreso,
+    tipoExpediente: b.tipo_expediente || b.tipoExpediente || 'Protección Integral',
+    prioridad: b.prioridad || 'Normal',
+    institucionRemite: b.institucion_remite || b.institucionRemite || '',
+    observaciones,
+    representantePrincipal,
+    representantes: b.representantes || [],
+    hermanasIds: b.hermanasIds || [],
+    avatarBg: b.avatarBg || 'bg-[#00256F] text-white',
+    activo: b.activo !== false
+  };
+};
+
   // Load initial datasets from API when user is authenticated
   useEffect(() => {
     let isMounted = true;
@@ -46,12 +99,15 @@ export default function App() {
     const fetchInitialData = async () => {
       try {
         setIsDataLoading(true);
-        const [beneficiariasList, personalList] = await Promise.all([
-          beneficiariasApi.list(),
+        const [rawBeneficiarias, personalList] = await Promise.all([
+          beneficiariasApi.list({ limit: 100 }),
           personalApi.list()
         ]);
 
         if (isMounted) {
+          const beneficiariasList = Array.isArray(rawBeneficiarias)
+            ? rawBeneficiarias.map(normalizeBeneficiaria)
+            : [];
           setBeneficiarias(beneficiariasList);
           setPersonal(personalList);
           if (beneficiariasList.length > 0 && !selectedBeneficiaria) {
@@ -158,9 +214,14 @@ export default function App() {
     setBeneficiarias((prev) =>
       prev.map((b) => {
         if (b.id === updated.id) return updated;
-        // Si pertenece a la misma familia, sincronizar dirección
-        if (updated.hermanasIds.includes(b.id)) {
-          return { ...b, direccion: updated.direccion };
+        // Si pertenece a la misma familia (mismo expCode o hermanasIds), sincronizar dirección, representante y observaciones del núcleo
+        if (updated.hermanasIds.includes(b.id) || (updated.expCode && b.expCode === updated.expCode)) {
+          return {
+            ...b,
+            direccion: updated.direccion,
+            representantePrincipal: updated.representantePrincipal,
+            observacionesExpediente: updated.observacionesExpediente
+          };
         }
         return b;
       })
