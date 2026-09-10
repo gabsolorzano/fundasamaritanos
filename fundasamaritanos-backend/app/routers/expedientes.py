@@ -55,6 +55,7 @@ async def get_expediente(
         )
     return expediente
 
+@router.post("", response_model=ExpedienteResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_editor_or_admin)], include_in_schema=False)
 @router.post(
     "/", 
     response_model=ExpedienteResponse, 

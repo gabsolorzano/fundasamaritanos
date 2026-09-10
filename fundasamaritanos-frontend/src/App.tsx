@@ -145,35 +145,41 @@ const normalizeBeneficiaria = (b: any): Beneficiaria => {
 
   // Save new expediente(s) from Wizard (supports 1, 2, 3 or more sisters)
   const handleSaveNuevoExpediente = async (
-    expedientesParam: Beneficiaria | Beneficiaria[],
+    expedientesParam: Beneficiaria | Beneficiaria[] | any[],
     hermanaLegacy?: Beneficiaria
   ) => {
-    const list: Beneficiaria[] = Array.isArray(expedientesParam)
+    const list: any[] = Array.isArray(expedientesParam)
       ? expedientesParam
       : (hermanaLegacy ? [hermanaLegacy, expedientesParam] : [expedientesParam]);
 
     if (list.length === 0) return;
 
-    // Cross-link all sisters' IDs
-    const allIds = list.map((b) => b.id);
-    const fullyLinkedSisters = list.map((b) => ({
-      ...b,
-      hermanasIds: Array.from(new Set([...b.hermanasIds, ...allIds.filter((id) => id !== b.id)]))
-    }));
+    let targetBeneficiaria: Beneficiaria | null = null;
 
-    // Create via API
-    for (const item of fullyLinkedSisters) {
-      try {
-        await beneficiariasApi.create(item);
-      } catch (e) {
-        console.warn('Registro local de expediente:', e);
+    try {
+      // Re-fetch all beneficiarias from API to ensure complete DB integrity and relationships
+      const freshRaw = await beneficiariasApi.list({ limit: 100 });
+      if (Array.isArray(freshRaw) && freshRaw.length > 0) {
+        const freshNormalized = freshRaw.map(normalizeBeneficiaria);
+        setBeneficiarias(freshNormalized);
+
+        // Find the newly created girl
+        const firstCreatedId = String(list[0]?.id_beneficiaria ?? list[0]?.id ?? '');
+        targetBeneficiaria = freshNormalized.find((b) => b.id === firstCreatedId) || freshNormalized[0];
       }
+    } catch (err) {
+      console.warn('Error refrescando lista de beneficiarias tras guardado:', err);
     }
 
-    setBeneficiarias((prev) => [...fullyLinkedSisters, ...prev]);
+    // Fallback if network or list didn't load
+    if (!targetBeneficiaria) {
+      const fallbackList = list.map(normalizeBeneficiaria);
+      setBeneficiarias((prev) => [...fallbackList, ...prev]);
+      targetBeneficiaria = fallbackList[0];
+    }
 
     // Activity log entry
-    const newActs: ActividadLog[] = fullyLinkedSisters.map((ben, idx) => ({
+    const newActs: ActividadLog[] = list.map((ben, idx) => ({
       id: `act-${Date.now() + idx}`,
       usuario: user?.personal ? `${user.personal.nombre} ${user.personal.apellido}` : 'Administrador',
       rol: user?.rol || 'Administrador',
@@ -182,24 +188,22 @@ const normalizeBeneficiaria = (b: any): Beneficiaria => {
         idx === 0
           ? `Ingreso registrado para ${ben.nombres} ${ben.apellidos}.`
           : `Ingreso correlativo para ${ben.nombres} ${ben.apellidos}, hermana vinculada.`,
-      expCode: ben.expCode,
+      expCode: ben.codigo_expediente || ben.expCode || `EXP-${idx + 1}`,
       tiempo: 'Justo ahora',
       tipo: 'create'
     }));
 
     setActividades((prev) => [...newActs.reverse(), ...prev]);
 
-    if (fullyLinkedSisters.length > 1) {
+    if (list.length > 1) {
       triggerToast(
-        `Se registraron ${fullyLinkedSisters.length} expedientes vinculados: ${fullyLinkedSisters
-          .map((b) => b.expCode)
-          .join(', ')}.`
+        `Se registraron ${list.length} expedientes vinculados exitosamente.`
       );
     } else {
-      triggerToast(`Expediente ${fullyLinkedSisters[0].expCode} creado exitosamente.`);
+      triggerToast(`Expediente registrado exitosamente.`);
     }
 
-    setSelectedBeneficiaria(fullyLinkedSisters[0]);
+    setSelectedBeneficiaria(targetBeneficiaria);
     setCurrentView('ficha-beneficiaria');
   };
 

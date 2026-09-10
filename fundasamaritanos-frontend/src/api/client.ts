@@ -566,5 +566,54 @@ async function handleMockRequest<T>(
     return { message: 'Expediente eliminado exitosamente' } as unknown as T;
   }
 
+  // 14. GET /direcciones
+  if (cleanEndpoint === '/direcciones' && method === 'GET') {
+    return [] as unknown as T;
+  }
+
+  // 15. POST /direcciones
+  if (cleanEndpoint === '/direcciones' && method === 'POST') {
+    const newDir = { id_direccion: Date.now(), ...body };
+    return newDir as unknown as T;
+  }
+
+  // 16. GET /instituciones
+  if (cleanEndpoint === '/instituciones' && method === 'GET') {
+    return [] as unknown as T;
+  }
+
+  // 17. POST /instituciones
+  if (cleanEndpoint === '/instituciones' && method === 'POST') {
+    const newInst = { id_institucion: Date.now(), ...body };
+    return newInst as unknown as T;
+  }
+
+  // 18. GET /representantes
+  if (cleanEndpoint === '/representantes' && method === 'GET') {
+    return [] as unknown as T;
+  }
+
+  // 19. POST /representantes
+  if (cleanEndpoint === '/representantes' && method === 'POST') {
+    const newRep = { id_representante: Date.now(), ...body };
+    return newRep as unknown as T;
+  }
+
+  // 20. GET /representantes/parentescos
+  if (cleanEndpoint === '/representantes/parentescos' && method === 'GET') {
+    return [] as unknown as T;
+  }
+
+  // 21. GET /expedientes
+  if (cleanEndpoint === '/expedientes' && method === 'GET') {
+    return [] as unknown as T;
+  }
+
+  // 22. POST /expedientes
+  if (cleanEndpoint === '/expedientes' && method === 'POST') {
+    const newExp = { id_expediente: Date.now(), ...body };
+    return newExp as unknown as T;
+  }
+
   return {} as unknown as T;
 }

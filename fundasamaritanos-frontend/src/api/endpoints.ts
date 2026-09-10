@@ -193,7 +193,7 @@ export const direccionesApi = {
   list: async (params?: Record<string, any>): Promise<any[]> => {
     return apiClient.request('/direcciones', {
       method: 'GET',
-      params: { limit: 200, ...params }
+      params: { limit: 100, ...params }
     });
   },
 
@@ -222,7 +222,7 @@ export const institucionesApi = {
   list: async (params?: Record<string, any>): Promise<any[]> => {
     return apiClient.request('/instituciones', {
       method: 'GET',
-      params: { limit: 200, ...params }
+      params: { limit: 100, ...params }
     });
   },
 
@@ -248,7 +248,7 @@ export const representantesApi = {
   list: async (params?: Record<string, any>): Promise<any[]> => {
     return apiClient.request('/representantes', {
       method: 'GET',
-      params: { limit: 200, ...params }
+      params: { limit: 100, ...params }
     });
   },
 
@@ -271,6 +271,23 @@ export const representantesApi = {
   },
 
   /**
+   * POST /representantes
+   */
+  create: async (data: {
+    nombres: string;
+    apellidos: string;
+    telefono_contacto: string;
+    id_direccion: number;
+    fecha_nacimiento?: string;
+    ocupacion_laboral?: string;
+  }): Promise<any> => {
+    return apiClient.request('/representantes', {
+      method: 'POST',
+      body: data
+    });
+  },
+
+  /**
    * PUT /representantes/{id}
    */
   update: async (id: number | string, data: any): Promise<any> => {
@@ -283,11 +300,37 @@ export const representantesApi = {
 
 export const expedientesApi = {
   /**
+   * GET /expedientes
+   */
+  list: async (params?: Record<string, any>): Promise<any[]> => {
+    return apiClient.request('/expedientes', {
+      method: 'GET',
+      params: { limit: 100, ...params }
+    });
+  },
+
+  /**
    * GET /expedientes/{id}
    */
   get: async (id: number | string): Promise<any> => {
     return apiClient.request(`/expedientes/${id}`, {
       method: 'GET'
+    });
+  },
+
+  /**
+   * POST /expedientes
+   */
+  create: async (data: {
+    codigo_expediente: string;
+    id_direccion: number;
+    fecha_apertura: string;
+    observaciones?: string;
+    activo?: boolean;
+  }): Promise<any> => {
+    return apiClient.request('/expedientes', {
+      method: 'POST',
+      body: data
     });
   },
 

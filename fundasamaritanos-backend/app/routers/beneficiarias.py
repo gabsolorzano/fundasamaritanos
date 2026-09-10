@@ -69,6 +69,7 @@ async def get_beneficiaria(
 
     return beneficiaria
 
+@router.post("", response_model=BeneficiariaResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_editor_or_admin)], include_in_schema=False)
 @router.post(
     "/", 
     response_model=BeneficiariaResponse, 

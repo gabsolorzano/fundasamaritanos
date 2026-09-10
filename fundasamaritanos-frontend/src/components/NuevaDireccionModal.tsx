@@ -12,13 +12,12 @@ export const NuevaDireccionModal: React.FC<NuevaDireccionModalProps> = ({
   onClose,
   onSave
 }) => {
-  const [estado, setEstado] = useState('Miranda');
-  const [municipio, setMunicipio] = useState('Sucre');
-  const [parroquia, setParroquia] = useState('Petare');
+  const [estado, setEstado] = useState('');
+  const [municipio, setMunicipio] = useState('');
+  const [parroquia, setParroquia] = useState('');
   const [sector, setSector] = useState('');
   const [calle, setCalle] = useState('');
   const [inmueble, setInmueble] = useState('');
-  const [puntoReferencia, setPuntoReferencia] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!isOpen) return null;
@@ -32,8 +31,7 @@ export const NuevaDireccionModal: React.FC<NuevaDireccionModalProps> = ({
       sector.trim() ? `Sector ${sector.trim()}` : '',
       `Parroquia ${parroquia}`,
       `Municipio ${municipio}`,
-      `Edo. ${estado}`,
-      puntoReferencia.trim() ? `(Punto de Ref: ${puntoReferencia.trim()})` : ''
+      `Edo. ${estado}`
     ].filter(Boolean);
 
     const fullAddress = parts.join(', ');
@@ -42,7 +40,7 @@ export const NuevaDireccionModal: React.FC<NuevaDireccionModalProps> = ({
       const created = await direccionesApi.create({
         calle_av: calle.trim() || 'Principal',
         urbanizacion: sector.trim() || 'Sector Central',
-        ciudad: parroquia.trim() || 'Caracas',
+        ciudad: parroquia.trim() || municipio.trim() || 'Caracas',
         municipio: municipio.trim() || 'Sucre',
         estado: estado.trim() || 'Miranda',
         edificio_casa: inmueble.trim() || undefined
@@ -56,6 +54,7 @@ export const NuevaDireccionModal: React.FC<NuevaDireccionModalProps> = ({
       onClose();
     }
   };
+
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
@@ -82,17 +81,14 @@ export const NuevaDireccionModal: React.FC<NuevaDireccionModalProps> = ({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block font-semibold text-slate-700 mb-1">Estado</label>
-              <select
+              <input
+                type="text"
                 value={estado}
                 onChange={(e) => setEstado(e.target.value)}
+                placeholder="Ej: Miranda, Carabobo"
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-[#00256F]"
-              >
-                <option value="Miranda">Miranda</option>
-                <option value="Distrito Capital">Distrito Capital</option>
-                <option value="La Guaira">La Guaira</option>
-                <option value="Aragua">Aragua</option>
-                <option value="Carabobo">Carabobo</option>
-              </select>
+                required
+              />
             </div>
 
             <div>
@@ -155,17 +151,6 @@ export const NuevaDireccionModal: React.FC<NuevaDireccionModalProps> = ({
               placeholder="Ej: Edif. Centro, Apto 4-B o Casa Nº 12"
               className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-[#00256F]"
               required
-            />
-          </div>
-
-          <div>
-            <label className="block font-semibold text-slate-700 mb-1">Punto de Referencia (Opcional)</label>
-            <input
-              type="text"
-              value={puntoReferencia}
-              onChange={(e) => setPuntoReferencia(e.target.value)}
-              placeholder="Ej: A 50 metros del ambulatorio, frente a la panadería"
-              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:bg-white focus:ring-2 focus:ring-[#00256F]"
             />
           </div>
 
