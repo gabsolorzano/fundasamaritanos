@@ -90,10 +90,8 @@ export const FichaBeneficiariaView: React.FC<FichaBeneficiariaViewProps> = ({
   const [idExpediente, setIdExpediente] = useState<number | undefined>(undefined);
   const [observacionesExpediente, setObservacionesExpediente] = useState(beneficiaria.observacionesExpediente || '');
 
-  // Pestaña 3: Historial y Estatus
   const [estado, setEstado] = useState<BeneficiariaStatus>(beneficiaria.estado || 'Activa');
   const [fechaEgreso, setFechaEgreso] = useState(beneficiaria.fechaEgreso || '');
-  const [motivoEgreso, setMotivoEgreso] = useState('');
 
   const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
     setToastMessage(msg);
@@ -248,7 +246,6 @@ export const FichaBeneficiariaView: React.FC<FichaBeneficiariaViewProps> = ({
     setValidationError(null);
     if (newEstado === 'Activa') {
       setFechaEgreso('');
-      setMotivoEgreso('');
     } else if (!fechaEgreso) {
       setFechaEgreso(todayStr);
     }
@@ -1282,14 +1279,16 @@ export const FichaBeneficiariaView: React.FC<FichaBeneficiariaViewProps> = ({
                     </div>
                   </div>
                 ) : (
-                  <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
-                    <h4 className="font-bold text-slate-800 text-xs flex items-center gap-2">
-                      <span className="material-symbols-outlined text-slate-500 text-[18px]">info</span>
-                      <span>Historial de Salida</span>
-                    </h4>
-                    <p className="text-slate-600 text-xs">
-                      {motivoEgreso || `El expediente de la beneficiaria se encuentra en estatus '${estado}'. Se preservan los registros históricos de acuerdo con los protocolos administrativos.`}
-                    </p>
+                  <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center shrink-0">
+                      <span className="material-symbols-outlined text-[24px]">info</span>
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-slate-800 text-xs">Expediente en estatus '{estado}'</h4>
+                      <p className="text-[11px] text-slate-600 mt-0.5">
+                        El expediente se encuentra archivado bajo estatus '{estado}'. Se preservan los registros conforme a los lineamientos de la Fundación.
+                      </p>
+                    </div>
                   </div>
                 )}
               </div>
@@ -1338,21 +1337,6 @@ export const FichaBeneficiariaView: React.FC<FichaBeneficiariaViewProps> = ({
                     </div>
                   )}
                 </div>
-
-                {estado !== 'Activa' && (
-                  <div>
-                    <label className="block font-semibold text-slate-700 mb-1">
-                      Motivo de Salida / Observaciones de Egreso
-                    </label>
-                    <textarea
-                      rows={3}
-                      value={motivoEgreso}
-                      onChange={(e) => setMotivoEgreso(e.target.value)}
-                      placeholder="Indique los motivos del egreso, traslado o anulación del caso..."
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:bg-white focus:ring-2 focus:ring-[#00256F]"
-                    />
-                  </div>
-                )}
               </div>
             )}
           </div>
