@@ -98,6 +98,22 @@ class RepresentanteService:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"La dirección con ID {representante_in.id_direccion} no existe."
             )
+        # 2. Evitar duplicación si ya existe un representante con los mismos nombres, apellidos y teléfono
+        stmt_existente = (
+            select(Representante)
+            .where(
+                and_(
+                    Representante.nombres.ilike(representante_in.nombres.strip()),
+                    Representante.apellidos.ilike(representante_in.apellidos.strip()),
+                    Representante.telefono_contacto == representante_in.telefono_contacto.strip()
+                )
+            )
+            .options(selectinload(Representante.direccion))
+        )
+        res_existente = await db.execute(stmt_existente)
+        representante_existente = res_existente.scalar_one_or_none()
+        if representante_existente:
+            return representante_existente
 
         nuevo_representante = Representante(**representante_in.model_dump())
         db.add(nuevo_representante)

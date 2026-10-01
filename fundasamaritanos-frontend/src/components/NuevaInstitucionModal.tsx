@@ -19,7 +19,7 @@ export const NuevaInstitucionModal: React.FC<NuevaInstitucionModalProps> = ({
   const [selectedDireccionId, setSelectedDireccionId] = useState<number | ''>('');
 
   // Nueva dirección fields
-  const [estado, setEstado] = useState('Miranda');
+  const [estado, setEstado] = useState('');
   const [municipio, setMunicipio] = useState('Sucre');
   const [ciudad, setCiudad] = useState('Caracas');
   const [urbanizacion, setUrbanizacion] = useState('');
@@ -189,16 +189,14 @@ export const NuevaInstitucionModal: React.FC<NuevaInstitucionModalProps> = ({
                 <div className="grid grid-cols-2 gap-2.5">
                   <div>
                     <label className="block text-[11px] font-medium text-slate-600 mb-0.5">Estado</label>
-                    <select
+                    <input
+                      type="text"
                       value={estado}
                       onChange={(e) => setEstado(e.target.value)}
+                      placeholder="Ej: Miranda"
                       className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg outline-none text-xs"
-                    >
-                      <option value="Miranda">Miranda</option>
-                      <option value="Distrito Capital">Distrito Capital</option>
-                      <option value="La Guaira">La Guaira</option>
-                      <option value="Aragua">Aragua</option>
-                    </select>
+                      required
+                    />
                   </div>
                   <div>
                     <label className="block text-[11px] font-medium text-slate-600 mb-0.5">Municipio</label>
