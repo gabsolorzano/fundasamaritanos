@@ -1,0 +1,80 @@
+version: '3.8'
+
+services:
+  # -------------------------------------------------------------
+  # Servicio 1: Base de Datos Relacional PostgreSQL
+  # -------------------------------------------------------------
+  db:
+    image: postgres:15-alpine
+    container_name: fundasamaritanos_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-123456}
+      POSTGRES_DB: fundasamaritanos
+    ports:
+      # Exponer en 5433 para evitar conflicto con PostgreSQL local en 5432 (puedes conectar DBeaver / pgAdmin aquí)
+      - "5433:5432"
+    volumes:
+      # Volumen persistente: los datos se guardan aunque se apague el contenedor
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - fundasamaritanos_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d fundasamaritanos"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # -------------------------------------------------------------
+  # Servicio 2: API Backend FastAPI
+  # -------------------------------------------------------------
+  backend:
+    build:
+      context: ./fundasamaritanos-backend
+      dockerfile: Dockerfile
+    container_name: fundasamaritanos_backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:${POSTGRES_PASSWORD:-123456}@db:5432/fundasamaritanos
+      SECRET_KEY: ${SECRET_KEY:-mi-super-secreto-cambiame-fundasamaritanos-2026}
+      ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 1440
+    ports:
+      - "8000:8000"
+    networks:
+      - fundasamaritanos_net
+
+  # -------------------------------------------------------------
+  # Servicio 3: Interfaz Web Frontend (React + Vite + Nginx)
+  # -------------------------------------------------------------
+  frontend:
+    build:
+      context: ./fundasamaritanos-frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: http://localhost:8000
+    container_name: fundasamaritanos_frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+      - "5173:80"
+    networks:
+      - fundasamaritanos_net
+
+# -------------------------------------------------------------
+# Volúmenes y Redes
+# -------------------------------------------------------------
+volumes:
+  postgres_data:
+    name: fundasamaritanos_postgres_data
+
+networks:
+  fundasamaritanos_net:
+    name: fundasamaritanos_network
+    driver: bridge

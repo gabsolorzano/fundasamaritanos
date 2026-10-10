@@ -255,15 +255,22 @@ export const PersonalView: React.FC<PersonalViewProps> = ({
                             <span className="font-mono text-slate-900 font-bold text-[11px]">
                               @{p.usuario.nombre_usuario}
                             </span>
-                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
-                              p.usuario.rol_nombre === 'Administrador'
-                                ? 'bg-blue-50 text-[#00256F] border-blue-200'
-                                : p.usuario.rol_nombre === 'Editor'
-                                ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                                : 'bg-purple-50 text-purple-800 border-purple-200'
-                            }`}>
-                              {p.usuario.rol_nombre || 'Editor'}
-                            </span>
+                            {(() => {
+                              const rolText = p.usuario.rol_nombre || (p.usuario.id_rol === 1 ? 'Administrador' : p.usuario.id_rol === 3 ? 'Lector' : 'Editor');
+                              const isAdm = rolText === 'Administrador';
+                              const isEd = rolText === 'Editor';
+                              return (
+                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                                  isAdm
+                                    ? 'bg-blue-50 text-[#00256F] border-blue-200'
+                                    : isEd
+                                    ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                    : 'bg-purple-50 text-purple-800 border-purple-200'
+                                }`}>
+                                  {rolText}
+                                </span>
+                              );
+                            })()}
                           </div>
 
                           {/* RBAC: Solo Admin puede editar credenciales */}

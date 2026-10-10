@@ -1,4 +1,5 @@
 import asyncio
+import sys
 from datetime import date, datetime
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -23,8 +24,14 @@ async def truncate_tables(session: AsyncSession):
         await session.execute(text(f"TRUNCATE TABLE {table} RESTART IDENTITY CASCADE"))
     await session.commit()
 
-async def seed():
+async def seed(if_empty: bool = False):
     async with AsyncSessionLocal() as session:
+        if if_empty:
+            count = (await session.execute(text("SELECT COUNT(*) FROM usuarios"))).scalar()
+            if count and count > 0:
+                print("Base de datos ya cuenta con usuarios registrados. Omitiendo seed.")
+                return
+
         #Limpiar datos existentes (para evitar duplicados)
         await truncate_tables(session)
 
@@ -347,4 +354,5 @@ async def seed():
         print("   - Usuario Lector: lector / pass: lector123 (Solo lectura)")
 
 if __name__ == "__main__":
-    asyncio.run(seed())
+    if_empty = "--if-empty" in sys.argv
+    asyncio.run(seed(if_empty=if_empty))

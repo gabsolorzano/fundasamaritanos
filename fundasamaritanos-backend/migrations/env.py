@@ -6,6 +6,7 @@ from sqlalchemy import pool
 from alembic import context
 
 import sys
+import os
 from pathlib import Path
 
 # Agrega la carpeta 'app' al path de Python
@@ -18,6 +19,13 @@ from app.models import *  # Esto importa todos los modelos definidos en app/mode
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
+
+# Si existe la variable de entorno DATABASE_URL (Docker), úsala en lugar del alembic.ini
+_db_url = os.environ.get("DATABASE_URL")
+if _db_url:
+    # Alembic corre en modo síncrono, reemplazar +asyncpg por driver estándar
+    _db_url = _db_url.replace("postgresql+asyncpg://", "postgresql://")
+    config.set_main_option("sqlalchemy.url", _db_url)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.

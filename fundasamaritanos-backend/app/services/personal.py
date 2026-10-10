@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import selectinload, joinedload
 from fastapi import HTTPException, status
 from app.models.personal import Personal
 from app.models.usuario import Usuario
@@ -32,8 +32,7 @@ async def crear_personal(db: AsyncSession, personal_in: PersonalCreate) -> Perso
     )
     db.add(db_obj)
     await db.commit()
-    await db.refresh(db_obj)
-    return db_obj
+    return await obtener_personal_por_id(db, db_obj.id)
 
 async def obtener_todo_el_personal(
     db: AsyncSession,
@@ -59,8 +58,9 @@ async def obtener_todo_el_personal(
         )
 
     stmt = stmt.order_by(Personal.id.asc())
+    stmt = stmt.options(joinedload(Personal.usuario).joinedload(Usuario.rol))
     result = await db.execute(stmt)
-    return result.scalars().all()
+    return result.unique().scalars().all()
 
 async def obtener_personal_por_id(db: AsyncSession, personal_id: int) -> Personal:
     # Carga el registro con sus relaciones en una sola consulta
@@ -70,11 +70,11 @@ async def obtener_personal_por_id(db: AsyncSession, personal_id: int) -> Persona
         .options(
             selectinload(Personal.cargo),
             selectinload(Personal.direccion),
-            selectinload(Personal.usuario),
+            joinedload(Personal.usuario).joinedload(Usuario.rol),
         )
     )
     result = await db.execute(stmt)
-    personal = result.scalar_one_or_none()
+    personal = result.unique().scalar_one_or_none()
 
     if personal is None:
         raise HTTPException(
@@ -96,11 +96,11 @@ async def actualizar_personal(
         .options(
             selectinload(Personal.cargo),
             selectinload(Personal.direccion),
-            selectinload(Personal.usuario)
+            joinedload(Personal.usuario).joinedload(Usuario.rol)
         )
     )
     result = await db.execute(stmt)
-    db_obj = result.scalar_one_or_none()
+    db_obj = result.unique().scalar_one_or_none()
 
     if db_obj is None:
         raise HTTPException(
@@ -124,8 +124,7 @@ async def actualizar_personal(
         setattr(db_obj, campo, valor)
 
     await db.commit()
-    await db.refresh(db_obj)
-    return db_obj
+    return await obtener_personal_por_id(db, personal_id)
 
 async def desactivar_personal(
     db: AsyncSession,

@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 from typing import Optional
 from datetime import datetime
 
@@ -27,7 +27,21 @@ class UsuarioInfo(BaseModel):
     id: int
     nombre_usuario: str
     id_rol: int
+    rol_nombre: Optional[str] = None
     ultimo_acceso: Optional[datetime] = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def populate_rol_nombre(cls, data):
+        if hasattr(data, "rol") and data.rol is not None:
+            return {
+                "id": data.id,
+                "nombre_usuario": data.nombre_usuario,
+                "id_rol": data.id_rol,
+                "rol_nombre": getattr(data.rol, "nombre_rol", None),
+                "ultimo_acceso": data.ultimo_acceso,
+            }
+        return data
 
     class Config:
         from_attributes = True
@@ -60,8 +74,9 @@ class PersonalUpdate(BaseModel):
     estado: Optional[str] = None
 
 class PersonalResponse(PersonalBase):
-    """Respuesta plana (listado) — solo claves foráneas."""
+    """Respuesta plana (listado) — incluye info básica de usuario si existe."""
     id: int
+    usuario: Optional[UsuarioInfo] = None
 
     class Config:
         from_attributes = True

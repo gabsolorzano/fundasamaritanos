@@ -30,14 +30,21 @@ export const AsignarUsuarioModal: React.FC<AsignarUsuarioModalProps> = ({
     // Cargar lista oficial de roles desde GET /roles/
     const loadRoles = async () => {
       try {
-        const rolesList = await rolesApi.list();
-        setRoles(rolesList);
+        const rawList: any[] = await rolesApi.list() as any[];
+        // El backend devuelve { id_rol, nombre_rol, descripcion }
+        // pero RoleItem espera { id, nombre, descripcion }
+        const normalizedList: RoleItem[] = rawList.map((r) => ({
+          id: r.id_rol ?? r.id,
+          nombre: r.nombre_rol ?? r.nombre,
+          descripcion: r.descripcion
+        }));
+        setRoles(normalizedList);
       } catch {
-        // Fallback default
+        // Fallback default si la API falla
         setRoles([
-          { id: 1, nombre: 'Administrador', descripcion: 'Acceso Total' },
-          { id: 2, nombre: 'Editor', descripcion: 'Creación y Edición' },
-          { id: 3, nombre: 'Lector', descripcion: 'Solo Lectura' }
+          { id: 1, nombre: 'Administrador', descripcion: 'Acceso total' },
+          { id: 2, nombre: 'Editor', descripcion: 'Puede crear y editar' },
+          { id: 3, nombre: 'Lector', descripcion: 'Solo lectura' }
         ]);
       }
     };
