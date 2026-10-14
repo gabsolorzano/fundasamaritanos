@@ -20,28 +20,29 @@ export const PersonalView: React.FC<PersonalViewProps> = ({
 }) => {
   const { isAdmin, role } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedArea, setSelectedArea] = useState<string>('Todas');
+  const [selectedCargo, setSelectedCargo] = useState<string>('Todos');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedMemberForUser, setSelectedMemberForUser] = useState<PersonalMember | null>(null);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [memberToDelete, setMemberToDelete] = useState<PersonalMember | null>(null);
 
-  const areas = ['Todas', 'Trabajo Social', 'Psicología', 'Educación', 'Salud', 'Dirección', 'Administración'];
+  const cargosFiltro = ['Todos', 'Coordinador', 'Trabajador Social', 'Administrativo', 'Cocinera', 'Mantenimiento'];
 
   const filteredPersonal = useMemo(() => {
     return personal.filter((p) => {
       const full = `${p.nombre} ${p.apellido}`.toLowerCase();
+      const cargoDesc = (p.cargo?.descripcion || p.cargo || '').toLowerCase();
       const matchesSearch =
         full.includes(searchTerm.toLowerCase()) ||
-        p.cargo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        cargoDesc.includes(searchTerm.toLowerCase()) ||
         p.cedula.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (p.usuario?.nombre_usuario || '').toLowerCase().includes(searchTerm.toLowerCase());
 
-      const matchesArea = selectedArea === 'Todas' || p.area === selectedArea;
+      const matchesCargo = selectedCargo === 'Todos' || cargoDesc.includes(selectedCargo.toLowerCase());
 
-      return matchesSearch && matchesArea;
+      return matchesSearch && matchesCargo;
     });
-  }, [personal, searchTerm, selectedArea]);
+  }, [personal, searchTerm, selectedCargo]);
 
   const handleOpenUserModal = (member: PersonalMember) => {
     setSelectedMemberForUser(member);
@@ -168,17 +169,17 @@ export const PersonalView: React.FC<PersonalViewProps> = ({
         </div>
 
         <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
-          {areas.map((area) => (
+          {cargosFiltro.map((cargo) => (
             <button
-              key={area}
-              onClick={() => setSelectedArea(area)}
+              key={cargo}
+              onClick={() => setSelectedCargo(cargo)}
               className={`px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition cursor-pointer ${
-                selectedArea === area
+                selectedCargo === cargo
                   ? 'bg-[#00256F] text-white'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
-              {area}
+              {cargo}
             </button>
           ))}
         </div>
@@ -191,9 +192,9 @@ export const PersonalView: React.FC<PersonalViewProps> = ({
             <thead>
               <tr className="bg-slate-50/75 text-[11px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-100">
                 <th className="py-4 px-6">Colaborador</th>
-                <th className="py-4 px-6">Cargo / Área</th>
+                <th className="py-4 px-6">Cargo</th>
                 <th className="py-4 px-6">Tipo</th>
-                <th className="py-4 px-6">Usuario & Rol (API)</th>
+                <th className="py-4 px-6">Usuario y Rol</th>
                 <th className="py-4 px-6">Estado</th>
                 {isAdmin && <th className="py-4 px-6 text-right">Acciones Admin</th>}
               </tr>
@@ -201,22 +202,13 @@ export const PersonalView: React.FC<PersonalViewProps> = ({
             <tbody className="divide-y divide-slate-100 text-xs">
               {filteredPersonal.map((p) => {
                 const getStatusPill = (status: string) => {
-                  switch (status) {
-                    case 'Activo':
-                      return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-                    case 'Vacaciones':
-                      return 'bg-amber-50 text-amber-700 border-amber-200';
-                    case 'Permiso':
-                      return 'bg-blue-50 text-blue-700 border-blue-200';
-                    default:
-                      return 'bg-slate-50 text-slate-700 border-slate-200';
-                  }
+                  return status === 'Activo'
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                    : 'bg-slate-100 text-slate-600 border-slate-200';
                 };
 
                 const toggleStatus = (current: PersonalMember['estado']): PersonalMember['estado'] => {
-                  if (current === 'Activo') return 'Vacaciones';
-                  if (current === 'Vacaciones') return 'Permiso';
-                  return 'Activo';
+                  return current === 'Activo' ? 'Inactivo' : 'Activo';
                 };
 
                 return (
@@ -234,12 +226,11 @@ export const PersonalView: React.FC<PersonalViewProps> = ({
                       </div>
                     </td>
 
-                    {/* Cargo / Área */}
+                    {/* Cargo */}
                     <td className="py-4 px-6 whitespace-nowrap">
-                      <p className="font-semibold text-slate-700">{p.cargo}</p>
-                      <span className="inline-block mt-0.5 px-2 py-0.2 rounded text-[10px] font-semibold bg-slate-100 text-slate-600">
-                        {p.area}
-                      </span>
+                      <p className="font-semibold text-slate-700">
+                        {typeof p.cargo === 'object' && p.cargo !== null ? (p.cargo as any).descripcion : (p.cargo || 'Coordinador')}
+                      </p>
                     </td>
 
                     {/* Tipo */}

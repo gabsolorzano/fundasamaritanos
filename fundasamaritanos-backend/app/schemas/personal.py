@@ -76,6 +76,8 @@ class PersonalUpdate(BaseModel):
 class PersonalResponse(PersonalBase):
     """Respuesta plana (listado) — incluye info básica de usuario si existe."""
     id: int
+    cargo: Optional[CargoInfo] = None
+    direccion: Optional[DireccionInfo] = None
     usuario: Optional[UsuarioInfo] = None
 
     class Config:

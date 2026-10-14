@@ -72,19 +72,27 @@ export const personalApi = {
   },
 
   /**
+   * GET /personal/cargos
+   */
+  getCargos: async (): Promise<{ id_cargo: number; descripcion: string }[]> => {
+    return apiClient.request('/personal/cargos', {
+      method: 'GET'
+    });
+  },
+
+  /**
    * POST /personal/ (Paso 1 de creación de personal)
    */
   create: async (data: {
     nombre: string;
     apellido: string;
     cedula: string;
-    telefono: string;
-    id_direccion?: number;
-    id_cargo?: number;
-    cargo?: string;
-    area?: string;
+    telefono?: string;
+    id_direccion: number;
+    id_cargo: number;
     tipo_personal: 'Fijo' | 'Voluntario';
-    estado: 'Activo' | 'Inactivo' | 'Vacaciones' | 'Permiso';
+    estado: 'Activo' | 'Inactivo';
+    activo?: boolean;
   }): Promise<PersonalMember> => {
     return apiClient.request('/personal', {
       method: 'POST',

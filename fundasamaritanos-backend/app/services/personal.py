@@ -58,7 +58,11 @@ async def obtener_todo_el_personal(
         )
 
     stmt = stmt.order_by(Personal.id.asc())
-    stmt = stmt.options(joinedload(Personal.usuario).joinedload(Usuario.rol))
+    stmt = stmt.options(
+        joinedload(Personal.usuario).joinedload(Usuario.rol),
+        joinedload(Personal.cargo),
+        joinedload(Personal.direccion)
+    )
     result = await db.execute(stmt)
     return result.unique().scalars().all()
 

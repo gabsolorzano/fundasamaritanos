@@ -3,7 +3,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 from app.core.db import get_db
 from app.core.deps import get_current_user, require_admin_only
-from app.schemas.personal import PersonalCreate, PersonalResponse, PersonalDetailResponse, PersonalUpdate
+from sqlalchemy.future import select
+from app.models.cargo import Cargo
+from app.schemas.personal import PersonalCreate, PersonalResponse, PersonalDetailResponse, PersonalUpdate, CargoInfo
 from app.schemas.usuario import UsuarioCreate, UsuarioResponse, UsuarioUpdate
 from app.services import personal as personal_service
 from app.services import usuario as usuario_service
@@ -25,6 +27,12 @@ async def listar_personal(
     return await personal_service.obtener_todo_el_personal(
         db, activo=activo, id_cargo=id_cargo, buscar=buscar
     )
+
+@router.get("/cargos", response_model=List[CargoInfo], status_code=200)
+async def listar_cargos(db: AsyncSession = Depends(get_db)):
+    # Retorna la lista de cargos institucionales disponibles
+    result = await db.execute(select(Cargo).order_by(Cargo.id_cargo.asc()))
+    return result.scalars().all()
 
 @router.get("/{personal_id}", response_model=PersonalDetailResponse, status_code=200)
 async def obtener_personal(

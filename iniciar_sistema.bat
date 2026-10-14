@@ -16,8 +16,8 @@ if %ERRORLEVEL% NEQ 0 (
     pause
 )
 
-echo Construyendo y levantando contenedores...
-docker compose up -d --build
+echo Levantando contenedores locales de Fundasamaritanos...
+docker compose up -d
 if %ERRORLEVEL% NEQ 0 (
     echo.
     echo [ERROR] Ocurrio un problema al levantar los contenedores.

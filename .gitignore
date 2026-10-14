@@ -11,6 +11,10 @@ __pycache__/
 # Archivos de entorno y claves
 .env
 
+# Archivos de empaquetado y respaldos
+*.tar
+*.sql
+
 # Archivos del Frontend (si están en la misma carpeta)
 node_modules/
 dist/

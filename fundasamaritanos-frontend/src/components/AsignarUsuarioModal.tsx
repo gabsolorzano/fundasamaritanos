@@ -150,7 +150,7 @@ export const AsignarUsuarioModal: React.FC<AsignarUsuarioModalProps> = ({
                 {isEditing ? 'Modificar Credenciales' : 'Asignar Credenciales de Usuario'}
               </h3>
               <p className="text-xs text-slate-500">
-                Paso 2: Acceso para {personal.nombre} {personal.apellido}
+                Acceso para {personal.nombre} {personal.apellido}
               </p>
             </div>
           </div>
@@ -170,11 +170,15 @@ export const AsignarUsuarioModal: React.FC<AsignarUsuarioModalProps> = ({
         )}
 
         <form onSubmit={handleSubmit} className="py-4 space-y-4 text-xs">
-          {/* Endpoint Banner */}
-          <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between font-mono text-[11px] text-slate-600">
-            <span>{isEditing ? 'PUT' : 'POST'} /personal/{personal.id}/usuario</span>
-            <span className="font-sans font-semibold text-slate-500 text-[10px]">
-              {personal.estado === 'Activo' ? '🟢 Personal Activo' : '🔴 Inactivo'}
+          {/* Status Banner */}
+          <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between text-xs text-slate-600">
+            <span className="font-semibold text-slate-800">{personal.nombre} {personal.apellido}</span>
+            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+              personal.estado === 'Activo'
+                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                : 'bg-slate-100 text-slate-600 border border-slate-200'
+            }`}>
+              {personal.estado === 'Activo' ? 'Colaborador Activo' : 'Inactivo'}
             </span>
           </div>
 
@@ -199,7 +203,7 @@ export const AsignarUsuarioModal: React.FC<AsignarUsuarioModalProps> = ({
             </div>
             {isEditing && (
               <span className="text-[10px] text-slate-400 mt-0.5 block">
-                El nombre de usuario es un identificador único y no puede cambiarse.
+                El nombre de usuario es único para este colaborador.
               </span>
             )}
           </div>
@@ -233,10 +237,10 @@ export const AsignarUsuarioModal: React.FC<AsignarUsuarioModalProps> = ({
             </div>
           </div>
 
-          {/* Role selector from GET /roles/ */}
+          {/* Role selector */}
           <div>
             <label className="block font-semibold text-slate-700 mb-1">
-              Rol Asignado (GET /roles/) <span className="text-rose-500">*</span>
+              Rol Asignado <span className="text-rose-500">*</span>
             </label>
             <div className="space-y-2">
               {roles.map((r) => (
@@ -259,7 +263,7 @@ export const AsignarUsuarioModal: React.FC<AsignarUsuarioModalProps> = ({
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
                       <span className="font-bold text-xs">
-                        {r.nombre === 'Administrador' ? '🛡️ Administrador (ID: 1)' : r.nombre === 'Editor' ? '✏️ Editor (ID: 2)' : '👁️ Lector (ID: 3)'}
+                        {r.nombre === 'Administrador' ? '🛡️ Administrador' : r.nombre === 'Editor' ? '✏️ Editor' : '👁️ Lector'}
                       </span>
                     </div>
                     <p className="text-[11px] text-slate-500 mt-0.5">{r.descripcion}</p>
@@ -284,7 +288,7 @@ export const AsignarUsuarioModal: React.FC<AsignarUsuarioModalProps> = ({
               className="px-5 py-2.5 bg-[#00256F] hover:bg-[#132E70] text-white font-semibold rounded-xl shadow-xs hover:shadow-md transition flex items-center gap-2 cursor-pointer disabled:opacity-60"
             >
               {isLoading ? (
-                <span>Guardando en API...</span>
+                <span>Guardando...</span>
               ) : (
                 <>
                   <span className="material-symbols-outlined text-[18px]">check</span>
